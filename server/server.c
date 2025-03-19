@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "hangman.h"
+#include "authentication.h"
 
 #define  IP    "127.0.0.1"
 #define  PORT  5000
@@ -54,8 +55,6 @@ int main(){
 		perror("accept");
 		exit(1);
 	}
-
-    getRandomWord("words.txt", msg_back);
 
 
     int sent;

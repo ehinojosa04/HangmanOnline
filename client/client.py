@@ -10,7 +10,7 @@ def main():
         sys.exit(1)
 
     host = sys.argv[1]
-    message = sys.argv[2]
+    #message = sys.argv[2]
 
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
