@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall
-LDFLAGS = -lsqlite3
+LDFLAGS = -lsqlite3 -lcrypto
 
 # Output executable name
 TARGET = server

@@ -10,18 +10,24 @@ def main():
         sys.exit(1)
 
     host = sys.argv[1]
-    #message = sys.argv[2]
 
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         client_socket.connect((host, PUERTO))
         print(f"Conectado a {host} en el puerto {PUERTO}\n")
-        print(f"Ingresa tu usuario: ")
-        client_socket.sendall(message.encode())
 
+        # Send username
+        username = input("Ingresa tu usuario: ")
+        client_socket.sendall(username.encode())
+
+        # Send password
+        password = input("Ingresa tu contraseña: ")
+        client_socket.sendall(password.encode())
+
+        # Receive response from server
         response = client_socket.recv(BUFFER_SIZE).decode()
-        print("\nSe recibio:\n\n", response)
+        print("\nSe recibió:\n\n", response)
 
     except socket.error as e:
         print("Error de socket:", e)
@@ -32,5 +38,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 

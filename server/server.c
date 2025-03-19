@@ -9,6 +9,7 @@
 
 #define  IP    "127.0.0.1"
 #define  PORT  5000
+#define  DATABASE "auth.db"
 
 int                  sd, sd_actual;  /* descriptores de sockets */
 int                  addrlen;        /* longitud msgecciones */
@@ -55,6 +56,39 @@ int main(){
 		perror("accept");
 		exit(1);
 	}
+
+    char username[32];
+    char password[32];
+
+    int received = recv(sd_actual, username, sizeof(username) - 1, 0);
+    if (received == -1) {
+        perror("recv username");
+        exit(1);
+    }
+
+    username[received] = '\0';
+    printf("Received username: %s\n", username);
+
+    received = recv(sd_actual, password, sizeof(password) - 1, 0);
+    if (received == -1) {
+        perror("recv password");
+        exit(1);
+    }
+
+    password[received] = '\0';
+    printf("Received password: %s\n", password);
+
+    snprintf(msg_back, sizeof(msg_back), "Authentication received!");
+    
+    sqlite3 *db;
+    int rc = sqlite3_open(DATABASE, &db);
+
+    if (rc) {
+        printf("Cannot open database: %s\n", sqlite3_errmsg(db));
+    exit(1);
+    }
+
+    register_user(db, username, password);
 
 
     int sent;
