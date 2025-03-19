@@ -1,6 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include "hangman.h"
 
 void getRandomWord(char *filename);
 int countLines(char *filename);
