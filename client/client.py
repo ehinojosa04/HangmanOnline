@@ -12,43 +12,71 @@ def main():
     host = sys.argv[1]
 
     try:
+        token = None
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((host, PUERTO))
         print(f"Conectado a {host} en el puerto {PUERTO}\n")
 
         while True:
-            print("\nOpciones:")
-            print("1. Registrar")
-            print("2. Iniciar sesión")
-            print("3. Cerrar sesión")
-            print("4. Salir")
+            options = []
+            if not token:
+                options = ["Sign in", "Log in", "Exit"]
 
-            opcion = input("Elige una opción: ")
+                print("\nOpciones")
+                for idx,o in enumerate(options, start=1):
+                    print(f"{idx}. {o}")
 
-            if opcion == "1":
-                command = "REGISTER"
-            elif opcion == "2":
-                command = "LOGIN"
-            elif opcion == "3":
-                command = "LOGOUT"
-            elif opcion == "4":
-                print("Saliendo...")
-                break
+                option = input("Elige una opcion: ")
+                
+                if option == "1":
+                    command = "REGISTER"
+                elif option == "2":
+                    command = "LOGIN"
+                elif option == "3":
+                    print("Saliendo")
+                    break
+                else:
+                    print("Invalid option")
+                    continue
+
             else:
-                print("Opción inválida.")
-                continue
+                options = ["Log out", "Exit"]
+
+                print("\nOpciones")
+                for idx,o in enumerate(options, start=1):
+                    print(f"{idx}. {o}")
+
+                option = input("Elige una opcion: ")
+                
+                if option == "1":
+                    command = "LOGOUT"
+                elif option == "2":
+                    print("Saliendo")
+                    break
+                else:
+                    print("Invalid option")
+                    continue
 
             if command in ["REGISTER", "LOGIN"]:
                 username = input("Usuario: ").strip()
                 password = input("Contraseña: ").strip()
                 message = f"{command} {username} {password}"
-            else:
-                message = "LOGOUT"
 
+            else:
+                message = f"{command} {username}"
+
+            print(f"Mensaje enviado: {message}")
             client_socket.sendall(message.encode())
 
             response = client_socket.recv(BUFFER_SIZE).decode()
             print("Respuesta del servidor:", response)
+
+            if command == "LOGIN" and "Login failed" not in response:
+                token = response.strip()
+                print(f"Sesión iniciada con token: {token}")
+            elif command == "LOGOUT":
+                token = None
+            
 
     except socket.error as e:
         print("Error de socket:", e)

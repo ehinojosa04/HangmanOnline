@@ -11,6 +11,8 @@
 #define  PORT  5000
 #define  DATABASE "auth.db"
 
+#define  TOKEN_SIZE 65
+
 int                  sd, sd_actual;  /* descriptores de sockets */
 int                  addrlen;        /* longitud msgecciones */
 struct sockaddr_in   sind, pin;      /* msgecciones sockets cliente u servidor */
@@ -74,24 +76,34 @@ int main(){
         msg[received] = '\0';
         printf("Received: %s\n", msg);
 
-        char command[16], username[32], password[32];
-        if (sscanf(msg, "%s %s %s", command, username, password) < 2) {
+        char token[65];
+        char command[16], username[32], password[32] = "", received_token[TOKEN_SIZE+1] = "";
+        int parsed_args = sscanf(msg, "%s %s %s %s", command, username, password, received_token);
+
+        if (parsed_args < 2) {
             send(sd_actual, "Invalid command\n", 16, 0);
             continue;
         }
 
         if (strcmp(command, "REGISTER") == 0) {
-            register_user(db, username, password);
-            send(sd_actual, "User registered\n", 16, 0);
+            if(register_user(db, username, password)){
+                send(sd_actual, "User registered\n", 16, 0);
+            }else{
+                send(sd_actual, "Unable to register user\n", 25, 0);
+            }
         } 
         else if (strcmp(command, "LOGIN") == 0) {
             if (authenticate_user(db, username, password)) {
-                send(sd_actual, "Login successful\n", 18, 0);
+                generate_token(token, TOKEN_SIZE);
+                store_token(db, username, token);
+
+                send(sd_actual, token, TOKEN_SIZE, 0);
             } else {
                 send(sd_actual, "Login failed\n", 13, 0);
             }
         } 
         else if (strcmp(command, "LOGOUT") == 0) {
+            invalidate_token(db, username);
             send(sd_actual, "Logged out\n", 11, 0);
         } 
         else {
