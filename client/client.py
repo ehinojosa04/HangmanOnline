@@ -13,21 +13,42 @@ def main():
 
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
         client_socket.connect((host, PUERTO))
         print(f"Conectado a {host} en el puerto {PUERTO}\n")
 
-        # Send username
-        username = input("Ingresa tu usuario: ")
-        client_socket.sendall(username.encode())
+        while True:
+            print("\nOpciones:")
+            print("1. Registrar")
+            print("2. Iniciar sesión")
+            print("3. Cerrar sesión")
+            print("4. Salir")
 
-        # Send password
-        password = input("Ingresa tu contraseña: ")
-        client_socket.sendall(password.encode())
+            opcion = input("Elige una opción: ")
 
-        # Receive response from server
-        response = client_socket.recv(BUFFER_SIZE).decode()
-        print("\nSe recibió:\n\n", response)
+            if opcion == "1":
+                command = "REGISTER"
+            elif opcion == "2":
+                command = "LOGIN"
+            elif opcion == "3":
+                command = "LOGOUT"
+            elif opcion == "4":
+                print("Saliendo...")
+                break
+            else:
+                print("Opción inválida.")
+                continue
+
+            if command in ["REGISTER", "LOGIN"]:
+                username = input("Usuario: ").strip()
+                password = input("Contraseña: ").strip()
+                message = f"{command} {username} {password}"
+            else:
+                message = "LOGOUT"
+
+            client_socket.sendall(message.encode())
+
+            response = client_socket.recv(BUFFER_SIZE).decode()
+            print("Respuesta del servidor:", response)
 
     except socket.error as e:
         print("Error de socket:", e)

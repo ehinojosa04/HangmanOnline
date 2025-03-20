@@ -10,7 +10,7 @@
 
 int register_user(sqlite3 *db, const char *username, const char *password);
 void hash_password(const char *password, char *hashed_output);
-
+int authenticate_user(sqlite3 *db, const char *username, const char *password);
 
 #endif // HANGMAN_H
 

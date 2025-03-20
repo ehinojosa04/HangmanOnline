@@ -25,6 +25,7 @@ void aborta_handler(int sig){
 int main(){
     char msg[256];
     char msg_back[256];
+    int sent;
 
     if (signal(SIGINT, aborta_handler) == SIG_ERR){
    	    perror("Could not set signal handler");
@@ -57,48 +58,50 @@ int main(){
 		exit(1);
 	}
 
-    char username[32];
-    char password[32];
-
-    int received = recv(sd_actual, username, sizeof(username) - 1, 0);
-    if (received == -1) {
-        perror("recv username");
-        exit(1);
-    }
-
-    username[received] = '\0';
-    printf("Received username: %s\n", username);
-
-    received = recv(sd_actual, password, sizeof(password) - 1, 0);
-    if (received == -1) {
-        perror("recv password");
-        exit(1);
-    }
-
-    password[received] = '\0';
-    printf("Received password: %s\n", password);
-
-    snprintf(msg_back, sizeof(msg_back), "Authentication received!");
-    
-    sqlite3 *db;
-    int rc = sqlite3_open(DATABASE, &db);
-
-    if (rc) {
+        sqlite3 *db;
+    if (sqlite3_open(DATABASE, &db)) {
         printf("Cannot open database: %s\n", sqlite3_errmsg(db));
-    exit(1);
+        exit(1);
+    }
+    
+    while (1) {
+        int received = recv(sd_actual, msg, sizeof(msg) - 1, 0);
+        if (received <= 0) {
+            printf("Client disconnected.\n");
+            break;
+        }
+
+        msg[received] = '\0';
+        printf("Received: %s\n", msg);
+
+        char command[16], username[32], password[32];
+        if (sscanf(msg, "%s %s %s", command, username, password) < 2) {
+            send(sd_actual, "Invalid command\n", 16, 0);
+            continue;
+        }
+
+        if (strcmp(command, "REGISTER") == 0) {
+            register_user(db, username, password);
+            send(sd_actual, "User registered\n", 16, 0);
+        } 
+        else if (strcmp(command, "LOGIN") == 0) {
+            if (authenticate_user(db, username, password)) {
+                send(sd_actual, "Login successful\n", 18, 0);
+            } else {
+                send(sd_actual, "Login failed\n", 13, 0);
+            }
+        } 
+        else if (strcmp(command, "LOGOUT") == 0) {
+            send(sd_actual, "Logged out\n", 11, 0);
+        } 
+        else {
+            send(sd_actual, "Unknown command\n", 17, 0);
+        }
     }
 
-    register_user(db, username, password);
-
-
-    int sent;
-	if ( sent = send(sd_actual, msg_back, strlen(msg_back), 0) == -1) {
-		perror("send");
-		exit(1);
-	}
-
-    close(sd_actual);  
+    close(sd_actual);
     close(sd);
-    printf("Conexion cerrada\n");
+    sqlite3_close(db);
+    printf("Server shutting down...\n");
     return 0;
 }
