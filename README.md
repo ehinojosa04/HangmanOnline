@@ -1,7 +1,7 @@
-# Proyect: Hangmang_Online
+# Proyect: Hangmang Online
 
 ## Description
-This project is an online version of the classic Hangman game. In Hangman, one player thinks of a word, and the other players try to guess it letter by letter before running out of attempts. In this the word is randomized and chosen by the server not the players.
+This project is an online version of the classic Hangman game. In Hangman, one player thinks of a word, and the other players try to guess it letter by letter before running out of attempts. In this version the word is randomized and chosen by the server not the players so it more competitive.
 
 The key feature of this version is that it is multiplayer and online. Players can join a lobby, and the admin has control over when the game starts and ends. This adds a social and competitive element to the traditional game.  
  
