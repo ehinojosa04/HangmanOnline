@@ -76,7 +76,11 @@ void handle_client(int client_sd) {
     close(client_sd);
     sqlite3_close(db);
     printf("Client handler process exiting...\n");
+<<<<<<< HEAD
     exit(0);  // Ensure child process exits
+=======
+    exit(0);
+>>>>>>> 71f6813 (Handling multiple users)
 }
 
 int main() {
@@ -115,7 +119,11 @@ int main() {
         int client_sd = accept(sd, (struct sockaddr *)&pin, &addrlen);
         if (client_sd == -1) {
             perror("accept");
+<<<<<<< HEAD
             continue;  // Don't exit; just retry
+=======
+            continue;
+>>>>>>> 71f6813 (Handling multiple users)
         }
 
         printf("New client connected\n");
