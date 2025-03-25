@@ -21,6 +21,7 @@ def main():
         password = " "
         token = " "
         roomID = " "
+        current_room = None
 
 
         while True:
@@ -46,7 +47,7 @@ def main():
                     continue
 
             else:
-                options = ["Log out", "Create Room", "Join Room","Exit"]
+                options = ["Log out", "Create Room", "Join Room","Exit Room", "Close Program"]
 
                 print("\nOpciones")
                 for idx,o in enumerate(options, start=1):
@@ -61,6 +62,10 @@ def main():
                 elif option == "3":
                     command = "JOIN"
                 elif option == "4":
+                    command = "EXIT"
+                elif option == "5":
+                    if roomID != " ":
+                        command = "EXIT"
                     print("Saliendo")
                     break
                 else:
@@ -85,12 +90,15 @@ def main():
             response = client_socket.recv(BUFFER_SIZE).decode()
             print("Respuesta del servidor:", response)
 
-            if command == "LOGIN" and "Login failed" not in response:
+            if command == "LOGIN" and "FAILED" not in response:
                 token = response.strip()
                 print(f"Sesión iniciada con token: {token}")
             elif command == "LOGOUT":
                 token = " "
-            
+            elif command == "CREATE":
+                RoomID = response.strip()
+            elif (command == "JOIN" and "FAILED" in response) or (command == "EXIT" and "FAILED" not in response):
+                RoomID = " "
 
     except socket.error as e:
         print("Error de socket:", e)

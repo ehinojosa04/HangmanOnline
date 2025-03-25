@@ -28,3 +28,5 @@ Room *createRoom(Room rooms[], int max_rooms, char *admin_username);
 void generateRandomCode(char *code);
 int joinRoom(Room rooms[], int index, char *username);
 int exitRoom(Room rooms[], int index, char *username);
+
+void printPlayers(Room rooms[], int index);

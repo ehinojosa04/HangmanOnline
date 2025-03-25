@@ -62,3 +62,10 @@ void generateRandomCode(char *code){
     }
     code[CODE_SIZE] = '\0';
 }
+
+void printPlayers(Room rooms[], int index){
+    printf("Players in Room %d:\n", index);
+    for (int i = 0; i < MAX_PLAYERS; i++){
+        printf("- %s\n", rooms[index].users[i].username);
+    }
+}

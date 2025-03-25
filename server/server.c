@@ -6,6 +6,10 @@
 #include <signal.h>
 #include <sqlite3.h>
 
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+
 #include "hangman.h"
 #include "authentication.h"
 #include "roomManager.h"
@@ -20,7 +24,10 @@
 #define MAX_ROOMS 100
 
 int sd; /* Server socket descriptor */
-Room rooms[MAX_ROOMS];
+
+int shmid;
+Room *rooms;
+
 int room_count = 0;
 
 void aborta_handler(int sig) {
@@ -62,7 +69,7 @@ void handle_client(int client_sd) {
             if (register_user(db, username, password)) {
                 send(client_sd, "User registered\n", 16, 0);
             } else {
-                send(client_sd, "Unable to register user\n", 25, 0);
+                send(client_sd, "FAILED\n", 6, 0);
             }
         } else if (strcmp(command, "LOGIN") == 0) {
             if (authenticate_user(db, username, password)) {
@@ -71,16 +78,17 @@ void handle_client(int client_sd) {
                 send(client_sd, token, TOKEN_SIZE, 0);
 
             } else {
-                send(client_sd, "Login failed\n", 13, 0);
+                send(client_sd, "FAILED\n", 6, 0);
             }
         } else if (strcmp(command, "LOGOUT") == 0) {
             invalidate_token(db, username);
-            send(client_sd, "Logged out\n", 11, 0);
+            send(client_sd, "SUCCESS\n", 8, 0);
         } else if (strcmp(command, "CREATE") == 0) {
             Room *newRoom; 
             newRoom = createRoom(rooms, MAX_ROOMS, username);
             if (newRoom != NULL){
                 printf("New room created successfuly in: %d\n", newRoom->index);
+                printPlayers(rooms, atoi(roomID));
                 room_count++;
 
                 char index[16];
@@ -88,16 +96,27 @@ void handle_client(int client_sd) {
                 send(client_sd, index, len, 0);
             }
             else{
-                send(client_sd, "ROOM CREATION FAILED\n", 20, 0);
+                send(client_sd, "FAILED\n", 6, 0);
             }
         }else if (strcmp(command, "JOIN") == 0) {
-            if (joinRoom(rooms, 1, username)){
+            if (joinRoom(rooms,  atoi(roomID), username)){
                 printf("User %s has joined room %s successfuly\n", username, roomID);
-                send(client_sd, roomID, sizeof(roomID), 0);
+                printPlayers(rooms, atoi(roomID));
+                
+                send(client_sd, "SUCCESS\n", 8, 0);
             } else {
-                send(client_sd, "ROOM JOIN FAILED\n", 16, 0);
+                send(client_sd, "FAILED\n", 6, 0);
             }
             
+        } else if (strcmp(command, "EXIT") == 0) {
+            if (exitRoom(rooms, atoi(roomID), username)){
+                printf("User %s has successfuly left room %s", username, roomID);
+                printPlayers(rooms, atoi(roomID));
+                send(client_sd, "SUCCESS\n", 8, 0);
+            } else {
+                send(client_sd, "FAILED\n", 6, 0);
+            }
+
         } else {
             send(client_sd, "Unknown command\n", 17, 0);
         }
@@ -111,6 +130,19 @@ void handle_client(int client_sd) {
 
 int main() {
     srand(time(NULL));
+
+    shmid = shmget(IPC_PRIVATE, sizeof(Room) * MAX_ROOMS, IPC_CREAT | 0666);
+    if (shmid == -1) {
+        perror("shmget");
+        exit(1);
+    }
+
+    rooms = (Room *)shmat(shmid, NULL, 0);
+    if (rooms == (void *)-1) {
+        perror("shmat");
+        exit(1);
+    }
+
     for (int i = 0; i < MAX_ROOMS; i++){
         rooms[i].status = -1;
     }
