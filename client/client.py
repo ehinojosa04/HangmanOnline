@@ -12,14 +12,21 @@ def main():
     host = sys.argv[1]
 
     try:
-        token = None
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((host, PUERTO))
         print(f"Conectado a {host} en el puerto {PUERTO}\n")
 
+        command = " "
+        username = " "
+        password = " "
+        token = " "
+        roomID = " "
+        current_room = None
+
+
         while True:
             options = []
-            if not token:
+            if token == " ":
                 options = ["Sign in", "Log in", "Exit"]
 
                 print("\nOpciones")
@@ -40,7 +47,7 @@ def main():
                     continue
 
             else:
-                options = ["Log out", "Exit"]
+                options = ["Log out", "Create Room", "Join Room","Exit Room", "Close Program"]
 
                 print("\nOpciones")
                 for idx,o in enumerate(options, start=1):
@@ -51,6 +58,14 @@ def main():
                 if option == "1":
                     command = "LOGOUT"
                 elif option == "2":
+                    command = "CREATE"
+                elif option == "3":
+                    command = "JOIN"
+                elif option == "4":
+                    command = "EXIT"
+                elif option == "5":
+                    if roomID != " ":
+                        command = "EXIT"
                     print("Saliendo")
                     break
                 else:
@@ -60,23 +75,30 @@ def main():
             if command in ["REGISTER", "LOGIN"]:
                 username = input("Usuario: ").strip()
                 password = input("Contraseña: ").strip()
-                message = f"{command} {username} {password}"
 
             else:
-                message = f"{command} {username}"
+                password = " "
+                
+                if command == "JOIN":
+                    roomID = input("RoomID: ")
 
-            print(f"Mensaje enviado: {message}")
+            message = f"{command} {username} {password} {token} {roomID}"
+
+            print(f"Mensaje enviado: '{command} {username} {password} {token} {roomID}'")
             client_socket.sendall(message.encode())
 
             response = client_socket.recv(BUFFER_SIZE).decode()
             print("Respuesta del servidor:", response)
 
-            if command == "LOGIN" and "Login failed" not in response:
+            if command == "LOGIN" and "FAILED" not in response:
                 token = response.strip()
                 print(f"Sesión iniciada con token: {token}")
             elif command == "LOGOUT":
-                token = None
-            
+                token = " "
+            elif command == "CREATE":
+                RoomID = response.strip()
+            elif (command == "JOIN" and "FAILED" in response) or (command == "EXIT" and "FAILED" not in response):
+                RoomID = " "
 
     except socket.error as e:
         print("Error de socket:", e)
