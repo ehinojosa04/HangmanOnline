@@ -1,8 +1,5 @@
 #include "hangman.h"
 
-int countLines(char *filename);
-void getRandomWord(char *filename, char *dir);
-
 void getRandomWord(char *filename, char *dir) {
     srand(time(NULL));
     FILE *fptr;

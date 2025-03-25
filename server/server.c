@@ -8,13 +8,20 @@
 
 #include "hangman.h"
 #include "authentication.h"
+#include "roomManager.h"
 
 #define IP "127.0.0.1"
 #define PORT 5000
 #define DATABASE "auth.db"
 #define TOKEN_SIZE 65
 
+#define CODE_SIZE 4
+#define ROOM_CODE_CHARSET "ABCDEF1234567890"
+#define MAX_ROOMS 100
+
 int sd; /* Server socket descriptor */
+Room rooms[MAX_ROOMS];
+int room_count = 0;
 
 void aborta_handler(int sig) {
     printf(".... Shutting down server (signal %d)\n", sig);
@@ -43,8 +50,8 @@ void handle_client(int client_sd) {
         printf("Received: %s\n", msg);
 
         char token[TOKEN_SIZE];
-        char command[16], username[32], password[32] = "", received_token[TOKEN_SIZE + 1] = "";
-        int parsed_args = sscanf(msg, "%s %s %s %s", command, username, password, received_token);
+        char command[16], username[32], password[32] = "", received_token[TOKEN_SIZE + 1] = "", roomID[CODE_SIZE] = "";
+        int parsed_args = sscanf(msg, "%s %s %s %s %s", command, username, password, received_token, roomID);
 
         if (parsed_args < 2) {
             send(client_sd, "Invalid command\n", 16, 0);
@@ -62,12 +69,35 @@ void handle_client(int client_sd) {
                 generate_token(token, TOKEN_SIZE);
                 store_token(db, username, token);
                 send(client_sd, token, TOKEN_SIZE, 0);
+
             } else {
                 send(client_sd, "Login failed\n", 13, 0);
             }
         } else if (strcmp(command, "LOGOUT") == 0) {
             invalidate_token(db, username);
             send(client_sd, "Logged out\n", 11, 0);
+        } else if (strcmp(command, "CREATE") == 0) {
+            Room *newRoom; 
+            newRoom = createRoom(rooms, MAX_ROOMS, username);
+            if (newRoom != NULL){
+                printf("New room created successfuly in: %d\n", newRoom->index);
+                room_count++;
+
+                char index[16];
+                int len = sprintf(index, "%d", newRoom->index);
+                send(client_sd, index, len, 0);
+            }
+            else{
+                send(client_sd, "ROOM CREATION FAILED\n", 20, 0);
+            }
+        }else if (strcmp(command, "JOIN") == 0) {
+            if (joinRoom(rooms, 1, username)){
+                printf("User %s has joined room %s successfuly\n", username, roomID);
+                send(client_sd, roomID, sizeof(roomID), 0);
+            } else {
+                send(client_sd, "ROOM JOIN FAILED\n", 16, 0);
+            }
+            
         } else {
             send(client_sd, "Unknown command\n", 17, 0);
         }
@@ -84,6 +114,11 @@ void handle_client(int client_sd) {
 }
 
 int main() {
+    srand(time(NULL));
+    for (int i = 0; i < MAX_ROOMS; i++){
+        rooms[i].status = -1;
+    }
+
     struct sockaddr_in sind, pin;
     socklen_t addrlen = sizeof(pin);
 
