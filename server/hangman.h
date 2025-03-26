@@ -3,11 +3,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
+#include <time.h>
+#include <ctype.h>
+#include <stdbool.h>
 
-void getRandomWord(char *filename, char *dir);
-int countLines(char *filename);
+#define MAX_WORD_LENGTH 32
+#define MAX_ERRORS 6
+
+// Main Functions
+void playGame();
+void addWords();
+void clearScreen();
+
+// Utility Functions
+int countLines(const char *filename);
+void getRandomWord(const char *filename, char *word);
+void displayMessage(int errors, const char *word, int points, const char *wrongLetters);
 
 #endif
-
