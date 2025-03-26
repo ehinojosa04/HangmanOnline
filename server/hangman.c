@@ -1,7 +1,12 @@
 #include "hangman.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 int countLines(char *filename);
 void getRandomWord(char *filename, char *dir);
+void updateGameState(int *errorCount, char *word, char *guessedWord, char guess, char *errors);
 
 void getRandomWord(char *filename, char *dir) {
     srand(time(NULL));
@@ -17,25 +22,19 @@ void getRandomWord(char *filename, char *dir) {
     int objective = rand() % countLines(filename);
     char word[32];
     
-    printf("Your random number is %d\n", objective);
-    
     while (fgets(word, sizeof(word), fptr)) {
         if (count == objective) {
-            // Remove newline character if present
             size_t len = strlen(word);
             if (len > 0 && word[len-1] == '\n') {
                 word[len-1] = '\0';
             }
-            printf("Tu palabra random es: %s\n", word);
             break;
         } else {
             count++;
         }
     }
     
-    // Copy the word to the destination, not the other way around
     strncpy(dir, word, strlen(word) + 1);
-    
     fclose(fptr);
 }
 
@@ -59,4 +58,23 @@ int countLines(char *filename) {
     
     fclose(fptr);
     return lines;
+}
+
+// Function to update the game state with each guess
+void updateGameState(int *errorCount, char *word, char *guessedWord, char guess, char *errors) {
+    int correctGuess = 0;
+    
+    // Check if the guess is correct
+    for (int i = 0; i < strlen(word); i++) {
+        if (word[i] == guess) {
+            guessedWord[i] = guess;
+            correctGuess = 1;
+        }
+    }
+
+    // If the guess is incorrect, update the error count and store the wrong guess
+    if (!correctGuess) {
+        errors[*errorCount] = guess;
+        (*errorCount)++;
+    }
 }
