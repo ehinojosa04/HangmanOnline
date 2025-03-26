@@ -7,7 +7,7 @@ LDFLAGS = -lsqlite3 -lcrypto
 TARGET = server
 
 # Object files
-OBJ = server.o hangman.o authentication.o roomManager.o
+OBJ = server.o hangman.o authentication.o
 
 # The default target to build the program
 $(TARGET): $(OBJ)
@@ -24,8 +24,6 @@ hangman.o: hangman.c hangman.h
 authentication.o: authentication.c authentication.h
 	$(CC) $(CFLAGS) -c authentication.c
 
-roomManager.o: roomManager.c roomManager.h
-	$(CC) $(CFLAGS) -c roomManager.c
 # Clean up object files and executable
 clean:
 	rm -f *.o $(TARGET)
