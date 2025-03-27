@@ -4,7 +4,6 @@ from tkinter import ttk
 from logic import HangmanGame, get_word_list, add_word_to_file
 
 def start_game():
-    """Creates the game window and connects the logic with the UI."""
     game_win = tk.Toplevel(root)
     game_win.title("Hangman Game Online")
     game_win.geometry("600x400")
@@ -45,7 +44,6 @@ def start_game():
     ttk.Button(game_win, text="Close Game", command=game_win.destroy).pack(pady=10)
 
 def add_words_ui():
-    """Creates a window to display current words and allow adding new ones."""
     add_win = tk.Toplevel(root)
     add_win.title("Add Words")
     add_win.geometry("500x400")
