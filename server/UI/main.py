@@ -1,7 +1,6 @@
-# primer_commit.py
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox
-from hangman_logic import HangmanGame, get_word_list, add_word_to_file
+from logic import HangmanGame, get_word_list, add_word_to_file, remove_word_from_file
 
 # Simulated user credentials
 USERS = {
@@ -24,74 +23,74 @@ def register_user(username, password):
 def get_hangman_drawing(errors):
     stages = [
         """
-     ------   
-     |    |   
-     |        
-     |        
-     |        
-     |        
+     ------  
+     |    | 
+     |    
+     |    
+     |    
+     |    
   --------
         """,
         """
-     ------   
-     |    |   
-     |    O   
-     |        
-     |        
-     |        
+     ------  
+     |    | 
+     |    O
+     |    
+     |    
+     |    
   --------
         """,
         """
-     ------   
-     |    |   
-     |    O   
-     |    |   
-     |        
-     |        
+     ------  
+     |    | 
+     |    O
+     |    |
+     |    
+     |    
   --------
         """,
         """
-     ------   
-     |    |   
-     |    O   
-     |   /|   
-     |        
-     |        
+     ------  
+     |    | 
+     |    O
+     |   /|
+     |    
+     |    
   --------
         """,
         """
-     ------   
-     |    |   
-     |    O   
-     |   /|\\  
-     |        
-     |        
+     ------  
+     |    | 
+     |    O
+     |   /|\\
+     |    
+     |    
   --------
         """,
         """
-     ------   
-     |    |   
-     |    O   
-     |   /|\\  
-     |   /    
-     |        
+     ------  
+     |    | 
+     |    O
+     |   /|\\
+     |   /  
+     |    
   --------
         """,
         """
-     ------   
-     |    |   
-     |    O   
-     |   /|\\  
-     |   / \\  
-     |        
+     ------  
+     |    | 
+     |    O
+     |   /|\\
+     |   / \\
+     |    
   --------
         """
     ]
     return stages[min(errors, 6)]
 
-# =========================
-# Definición de ventanas
-# =========================
+# ===============================
+# Ventanas de la aplicación
+# ===============================
 
 def login_screen(root):
     """Login and register window (Toplevel)."""
@@ -132,25 +131,69 @@ def login_screen(root):
     ttk.Button(login_win, text="Register", command=on_register).pack(pady=5)
 
 def admin_ui(root):
-    """Admin menu (Toplevel)."""
     admin_win = tk.Toplevel(root)
     admin_win.title("Admin Panel")
     admin_win.geometry("500x400")
 
     tk.Label(admin_win, text="Admin Panel", font=("Helvetica", 18, "bold")).pack(pady=10)
-    ttk.Button(admin_win, text="Manage Words", command=lambda: add_words_ui(root)).pack(pady=5)
+    ttk.Button(admin_win, text="Manage Words", command=lambda: manage_words_ui(root)).pack(pady=5)
     ttk.Button(admin_win, text="View Players", command=lambda: messagebox.showinfo("Players", "Feature coming soon!")).pack(pady=5)
     ttk.Button(admin_win, text="About", command=lambda: show_about(root)).pack(pady=5)
 
     def on_exit():
-        # Cerrar la app completa
+        # Cierra toda la aplicación
         root.quit()
 
     ttk.Button(admin_win, text="Exit", command=on_exit).pack(pady=10)
 
+def manage_words_ui(root):
+    manage_win = tk.Toplevel(root)
+    manage_win.title("Manage Words")
+    manage_win.geometry("600x400")
+
+    from logic import get_word_list, remove_word_from_file
+    tk.Label(manage_win, text="Manage Words", font=("Helvetica", 14)).pack(pady=10)
+    
+    current_words = get_word_list()
+    words_str = "\n".join(current_words)
+    words_label = tk.Label(manage_win, text=words_str, font=("Helvetica", 12), justify="left")
+    words_label.pack(pady=10)
+
+    tk.Label(manage_win, text="New Word:", font=("Helvetica", 14)).pack(pady=5)
+    new_word_entry = tk.Entry(manage_win, font=("Helvetica", 14))
+    new_word_entry.pack(pady=5)
+
+    def on_add():
+        new_word = new_word_entry.get().strip()
+        if new_word:
+            success, msg = add_word_to_file(new_word)
+            if success:
+                messagebox.showinfo("Success", "Word added successfully!")
+                updated_words = get_word_list()
+                words_label.config(text="\n".join(updated_words))
+            else:
+                messagebox.showerror("Error", msg)
+        else:
+            messagebox.showerror("Error", "Please enter a word.")
+
+    def on_delete():
+        word_to_delete = new_word_entry.get().strip()
+        if word_to_delete in current_words:
+            success, msg = remove_word_from_file(word_to_delete)
+            if success:
+                messagebox.showinfo("Success", "Word deleted successfully!")
+                updated_words = get_word_list()
+                words_label.config(text="\n".join(updated_words))
+            else:
+                messagebox.showerror("Error", msg)
+        else:
+            messagebox.showerror("Error", "Word not found.")
+
+    ttk.Button(manage_win, text="Add Word", command=on_add).pack(pady=5)
+    ttk.Button(manage_win, text="Delete Word", command=on_delete).pack(pady=5)
+    ttk.Button(manage_win, text="Close", command=manage_win.destroy).pack(pady=10)
 
 def player_ui(root):
-    """Player menu (Toplevel)."""
     player_win = tk.Toplevel(root)
     player_win.title("Hangman - Player Menu")
     player_win.geometry("400x300")
@@ -160,13 +203,12 @@ def player_ui(root):
     ttk.Button(player_win, text="Play", command=lambda: main_game_ui(root)).pack(pady=5)
 
     def on_exit():
-        # Cerrar la app completa
+        # Cierra toda la aplicación
         root.quit()
 
     ttk.Button(player_win, text="Exit", command=on_exit).pack(pady=10)
 
 def main_game_ui(root):
-    """Main game window (Toplevel) for playing Hangman."""
     game_win = tk.Toplevel(root)
     game_win.title("Hangman Game")
     game_win.geometry("600x500")
@@ -213,41 +255,7 @@ def main_game_ui(root):
     ttk.Button(game_win, text="Guess", command=on_guess).pack(pady=10)
     ttk.Button(game_win, text="Close Game", command=game_win.destroy).pack(pady=10)
 
-def add_words_ui(root):
-    """Manage words window (Toplevel)."""
-    add_win = tk.Toplevel(root)
-    add_win.title("Manage Words")
-    add_win.geometry("500x400")
-    add_win.configure(bg="#f0f0f0")
-
-    tk.Label(add_win, text="Manage Words", font=("Helvetica", 14), bg="#f0f0f0").pack(pady=10)
-    current_words = get_word_list()
-    words_str = "\n".join(current_words)
-    words_label = tk.Label(add_win, text=words_str, font=("Helvetica", 12), bg="#f0f0f0", justify="left")
-    words_label.pack(pady=5, padx=10)
-
-    tk.Label(add_win, text="New Word:", font=("Helvetica", 14), bg="#f0f0f0").pack(pady=10)
-    new_word_entry = tk.Entry(add_win, font=("Helvetica", 14))
-    new_word_entry.pack(pady=5)
-
-    status_var = tk.StringVar(value="")
-    status_label = tk.Label(add_win, textvariable=status_var, font=("Helvetica", 12), fg="blue", bg="#f0f0f0")
-    status_label.pack(pady=5)
-
-    def on_add():
-        new_word = new_word_entry.get().strip()
-        new_word_entry.delete(0, tk.END)
-        success, msg = add_word_to_file(new_word)
-        status_var.set(msg)
-        if success:
-            updated_words = get_word_list()
-            words_label.config(text="\n".join(updated_words))
-
-    ttk.Button(add_win, text="Add", command=on_add).pack(pady=10)
-    ttk.Button(add_win, text="Close", command=add_win.destroy).pack(pady=10)
-
 def show_about(root):
-    """About screen (Toplevel)."""
     about_win = tk.Toplevel(root)
     about_win.title("About")
     about_win.geometry("655x555")
@@ -266,4 +274,30 @@ def show_about(root):
         "Date: 01/04/2025\n"
     )
     tk.Label(about_win, text=team_info, font=("Helvetica", 12),
-             justify="left", bg="#f0f0
+             justify="left", bg="#f0f0f0").pack(pady=10, padx=10)
+
+    game_info = (
+        "How to Play:\n\n"
+        "The objective is to guess the hidden word letter by letter.\n"
+        "You have 6 attempts. Each correct letter adds 20 points and each mistake subtracts 10 points.\n"
+        "As you make mistakes, the hangman drawing progresses.\n"
+        "You win if you guess the word before running out of attempts; otherwise, you lose.\n"
+    )
+    tk.Label(about_win, text=game_info, font=("Helvetica", 12),
+             justify="left", bg="#f0f0f0").pack(pady=10, padx=10)
+
+    ttk.Button(about_win, text="Close", command=about_win.destroy).pack(pady=20)
+
+# ===============================
+# Entry Point
+# ===============================
+def main():
+    root = tk.Tk()
+    root.withdraw() 
+
+    login_screen(root)
+
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
