@@ -1,56 +1,71 @@
 import socket
 import sys
 
-PORT = 5000
+
 BUFFER_SIZE = 2048
 
 def main():
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <host>")
+    if len(sys.argv) != 3:
+        print(f"Use: {sys.argv[0]} <host> <port>")
         sys.exit(1)
 
     host = sys.argv[1]
+    PORT = int(sys.argv[2])
 
     try:
-        token = None
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((host, PORT))
-        print(f"Connected to {host} on port {PORT}\n")
+        print(f"Conected to {host} at port {PORT}\n")
+
+        command = " "
+        username = " "
+        password = " "
+        token = " "
+        roomID = " "
+
 
         while True:
             options = []
-            if not token:
+            if token == " ":
                 options = ["Sign in", "Log in", "Exit"]
 
                 print("\nOptions")
-                for idx, o in enumerate(options, start=1):
+                for idx,o in enumerate(options, start=1):
                     print(f"{idx}. {o}")
 
-                option = input("Choose an option: ")
+                option = input("Select an option: ")
                 
                 if option == "1":
                     command = "REGISTER"
                 elif option == "2":
                     command = "LOGIN"
                 elif option == "3":
-                    print("Exiting")
+                    print("Saliendo")
                     break
                 else:
                     print("Invalid option")
                     continue
 
             else:
-                options = ["Log out", "Exit"]
+                options = ["Log out", "Create Room", "Join Room","Exit Room", "Close Program"]
 
                 print("\nOptions")
-                for idx, o in enumerate(options, start=1):
+                for idx,o in enumerate(options, start=1):
                     print(f"{idx}. {o}")
 
-                option = input("Choose an option: ")
+                option = input("Select an option: ")
                 
                 if option == "1":
                     command = "LOGOUT"
                 elif option == "2":
+                    command = "CREATE"
+                elif option == "3":
+                    command = "JOIN"
+                elif option == "4":
+                    command = "EXIT"
+                elif option == "5":
+                    if roomID != " ":
+                        command = "EXIT"
                     print("Exiting")
                     break
                 else:
@@ -58,25 +73,32 @@ def main():
                     continue
 
             if command in ["REGISTER", "LOGIN"]:
-                username = input("Username: ").strip()
+                username = input("User: ").strip()
                 password = input("Password: ").strip()
-                message = f"{command} {username} {password}"
 
             else:
-                message = f"{command} {username}"
+                password = " "
+                
+                if command == "JOIN":
+                    roomID = input("RoomID: ")
 
-            print(f"Message sent: {message}")
+            message = f"{command} {username} {password} {token} {roomID}"
+
+            print(f"Message sent: '{command} {username} {password} {token} {roomID}'")
             client_socket.sendall(message.encode())
 
-            response = client_socket.recv(BUFFER_SIZE).decode()
-            print("Server response:", response)
+            response = client_socket.recv(BUFFER_SIZE).decode(encoding='windows-1252')
+            print("Respuesta del servidor:", response)
 
-            if command == "LOGIN" and "Login failed" not in response:
+            if command == "LOGIN" and "FAILED" not in response:
                 token = response.strip()
-                print(f"Session started with token: {token}")
+                print(f"Session initiated with token: {token}")
             elif command == "LOGOUT":
-                token = None
-            
+                token = " "
+            elif command == "CREATE":
+                RoomID = response.strip()
+            elif (command == "JOIN" and "FAILED" in response) or (command == "EXIT" and "FAILED" not in response):
+                RoomID = " "
 
     except socket.error as e:
         print("Socket error:", e)
