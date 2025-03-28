@@ -1,7 +1,7 @@
 #include "roomManager.h"
 #include <string.h>
 
-Room *createRoom(Room rooms[], int max_rooms, char *admin_username){
+Room *createRoom(Room rooms[], int max_rooms, char *admin_username, char *ip){
     for (int i = 0; i < max_rooms; i++){
         if(rooms[i].status == -1){
             rooms[i].status = 0;
@@ -11,7 +11,7 @@ Room *createRoom(Room rooms[], int max_rooms, char *admin_username){
             strcpy(rooms[i].admin.username, admin_username);
             generateRandomCode(rooms[i].password);
 
-            joinRoom(rooms, i, admin_username);
+            joinRoom(rooms, i, admin_username, ip);
 
             return &rooms[i];
         }
@@ -19,7 +19,7 @@ Room *createRoom(Room rooms[], int max_rooms, char *admin_username){
     return NULL;
 }
 
-int joinRoom(Room rooms[], int index, char *username){
+int joinRoom(Room rooms[], int index, char *username, char *ip){
     if (index < 0 || rooms[index].status == -1) {
         return 0;
     }
@@ -27,6 +27,7 @@ int joinRoom(Room rooms[], int index, char *username){
     for (int i = 0; i < MAX_PLAYERS; i++){
         if (strlen(rooms[index].users[i].username) == 0) {
             strcpy(rooms[index].users[i].username, username);
+            strcpy(rooms[index].users[i].ip, ip);
             rooms[index].n_users++;
             return 1;
         }

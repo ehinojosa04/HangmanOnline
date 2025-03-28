@@ -1,15 +1,16 @@
 import socket
 import sys
 
-PUERTO = 5000
+
 BUFFER_SIZE = 2048
 
 def main():
-    if len(sys.argv) != 2:
-        print(f"Uso: {sys.argv[0]} <host>")
+    if len(sys.argv) != 3:
+        print(f"Uso: {sys.argv[0]} <host> <port>")
         sys.exit(1)
 
     host = sys.argv[1]
+    PUERTO = int(sys.argv[2])
 
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -87,7 +88,7 @@ def main():
             print(f"Mensaje enviado: '{command} {username} {password} {token} {roomID}'")
             client_socket.sendall(message.encode())
 
-            response = client_socket.recv(BUFFER_SIZE).decode()
+            response = client_socket.recv(BUFFER_SIZE).decode(encoding='windows-1252')
             print("Respuesta del servidor:", response)
 
             if command == "LOGIN" and "FAILED" not in response:

@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sqlite3.h>
+#include <arpa/inet.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -15,7 +17,7 @@
 #include "roomManager.h"
 
 #define IP "127.0.0.1"
-#define PORT 5000
+
 #define DATABASE "auth.db"
 #define TOKEN_SIZE 65
 
@@ -23,7 +25,10 @@
 #define ROOM_CODE_CHARSET "ABCDEF1234567890"
 #define MAX_ROOMS 100
 
-int sd; /* Server socket descriptor */
+int tcp_sd;
+int udp_sd;
+
+int PORT;
 
 int shmid;
 Room *rooms;
@@ -32,11 +37,54 @@ int room_count = 0;
 
 void aborta_handler(int sig) {
     printf(".... Shutting down server (signal %d)\n", sig);
-    close(sd);
+    close(tcp_sd);
+    close(udp_sd);
     exit(0);
 }
 
+int send_udp_message(const char *hostname, int port, const char *message, size_t message_len) {
+    int sockfd;
+    struct sockaddr_in server_addr;
+    
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("socket creation failed");
+        return -1;
+    }
+    
+    memset(&server_addr, 0, sizeof(server_addr));
+    
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    
+    if (inet_pton(AF_INET, hostname, &server_addr.sin_addr) <= 0) {
+        perror("invalid address/address not supported");
+        close(sockfd);
+        return -1;
+    }
+    
+    ssize_t bytes_sent = sendto(sockfd, message, message_len, 0, (const struct sockaddr *)&server_addr, sizeof(server_addr));
+    
+    if (bytes_sent < 0) {
+        perror("sendto failed");
+        close(sockfd);
+        return -1;
+    }
+    
+    printf("Sent %zd bytes to %s:%d\n", bytes_sent, hostname, port);
+    
+    close(sockfd);
+    return 0;
+}
+
+
 void handle_client(int client_sd) {
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+
+    getpeername(client_sd, (struct sockaddr *)&client_addr, &addr_len);
+    char client_ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+
     char msg[256];
 
     sqlite3 *db;
@@ -75,7 +123,7 @@ void handle_client(int client_sd) {
             if (authenticate_user(db, username, password)) {
                 generate_token(token, TOKEN_SIZE);
                 store_token(db, username, token);
-                send(client_sd, token, TOKEN_SIZE, 0);
+                send(client_sd, token, strlen(token), 0);
 
             } else {
                 send(client_sd, "FAILED\n", 6, 0);
@@ -85,7 +133,7 @@ void handle_client(int client_sd) {
             send(client_sd, "SUCCESS\n", 8, 0);
         } else if (strcmp(command, "CREATE") == 0) {
             Room *newRoom; 
-            newRoom = createRoom(rooms, MAX_ROOMS, username);
+            newRoom = createRoom(rooms, MAX_ROOMS, username, client_ip);
             if (newRoom != NULL){
                 printf("New room created successfuly in: %d\n", newRoom->index);
                 printPlayers(rooms, atoi(roomID));
@@ -99,10 +147,25 @@ void handle_client(int client_sd) {
                 send(client_sd, "FAILED\n", 6, 0);
             }
         }else if (strcmp(command, "JOIN") == 0) {
-            if (joinRoom(rooms,  atoi(roomID), username)){
+            if (joinRoom(rooms,  atoi(roomID), username, client_ip)){
                 printf("User %s has joined room %s successfuly\n", username, roomID);
                 printPlayers(rooms, atoi(roomID));
-                
+
+                char udp_msg[256];
+                sprintf(udp_msg, "Player %s has joined the room %s\n", username, roomID);
+
+                Room *room = &rooms[atoi(roomID)];
+                for (int i = 0; i < MAX_PLAYERS; i++) {
+                    if (room->users[i].username[0] != '\0') {
+                        printf("Sending update to player %s\n", room->users[i].username);
+                            printf("message: '%s'", udp_msg);
+
+                    if (send_udp_message(client_ip, PORT+1, udp_msg, strlen(udp_msg)) < 0) {
+                        printf("Failed to send UDP update to player\n");
+                    }
+                }
+            }
+
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
                 send(client_sd, "FAILED\n", 6, 0);
@@ -128,7 +191,15 @@ void handle_client(int client_sd) {
     exit(0);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    if (argc < 2) {
+        printf("Usage: %s <PORT>\n", argv[0]);
+        return 1;
+    }
+
+    PORT = atoi(argv[1]);
+
     srand(time(NULL));
 
     shmid = shmget(IPC_PRIVATE, sizeof(Room) * MAX_ROOMS, IPC_CREAT | 0666);
@@ -157,8 +228,13 @@ int main() {
 
     signal(SIGCHLD, SIG_IGN);
 
-    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("socket");
+    if ((tcp_sd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("TCP socket");
+        exit(1);
+    }
+
+    if ((udp_sd = socket(AF_INET, SOCK_DGRAM, 0)) == -1){
+        perror("UDP socket");
         exit(1);
     }
 
@@ -166,12 +242,25 @@ int main() {
     sind.sin_addr.s_addr = INADDR_ANY;
     sind.sin_port = htons(PORT);
 
-    if (bind(sd, (struct sockaddr *)&sind, sizeof(sind)) == -1) {
+    if (bind(tcp_sd, (struct sockaddr *)&sind, sizeof(sind)) == -1) {
         perror("bind");
         exit(1);
     }
 
-    if (listen(sd, 5) == -1) {
+
+/*
+    struct sockaddr_in udp_addr;
+    udp_addr.sin_family = AF_INET;
+    udp_addr.sin_addr.s_addr = INADDR_ANY;
+    udp_addr.sin_port = htons(PORT+1);
+
+    if (bind(udp_sd, (struct sockaddr *)&udp_addr, sizeof(udp_addr)) == -1) {
+        perror("udp bind");
+        exit(1);
+    }
+*/
+
+    if (listen(tcp_sd, 5) == -1) {
         perror("listen");
         exit(1);
     }
@@ -179,7 +268,7 @@ int main() {
     printf("IP ADDRESS: %s\nPort: %d\nListening...\n", IP, PORT);
 
     while (1) {
-        int client_sd = accept(sd, (struct sockaddr *)&pin, &addrlen);
+        int client_sd = accept(tcp_sd, (struct sockaddr *)&pin, &addrlen);
         if (client_sd == -1) {
             perror("accept");
             continue;
@@ -192,14 +281,16 @@ int main() {
             perror("fork");
             close(client_sd);
         } else if (pid == 0) {
-            close(sd);
+            close(tcp_sd);
+            close(udp_sd);
             handle_client(client_sd);
         } else {
             close(client_sd);
         }
     }
 
-    close(sd);
+    close(tcp_sd);
+    close(udp_sd);
     return 0;
 }
 
