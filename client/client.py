@@ -6,23 +6,22 @@ BUFFER_SIZE = 2048
 
 def main():
     if len(sys.argv) != 3:
-        print(f"Uso: {sys.argv[0]} <host> <port>")
+        print(f"Use: {sys.argv[0]} <host> <port>")
         sys.exit(1)
 
     host = sys.argv[1]
-    PUERTO = int(sys.argv[2])
+    PORT = int(sys.argv[2])
 
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((host, PUERTO))
-        print(f"Conectado a {host} en el puerto {PUERTO}\n")
+        client_socket.connect((host, PORT))
+        print(f"Conected to {host} at port {PORT}\n")
 
         command = " "
         username = " "
         password = " "
         token = " "
         roomID = " "
-        current_room = None
 
 
         while True:
@@ -30,11 +29,11 @@ def main():
             if token == " ":
                 options = ["Sign in", "Log in", "Exit"]
 
-                print("\nOpciones")
+                print("\nOptions")
                 for idx,o in enumerate(options, start=1):
                     print(f"{idx}. {o}")
 
-                option = input("Elige una opcion: ")
+                option = input("Select an option: ")
                 
                 if option == "1":
                     command = "REGISTER"
@@ -50,11 +49,11 @@ def main():
             else:
                 options = ["Log out", "Create Room", "Join Room","Exit Room", "Close Program"]
 
-                print("\nOpciones")
+                print("\nOptions")
                 for idx,o in enumerate(options, start=1):
                     print(f"{idx}. {o}")
 
-                option = input("Elige una opcion: ")
+                option = input("Select an option: ")
                 
                 if option == "1":
                     command = "LOGOUT"
@@ -67,15 +66,15 @@ def main():
                 elif option == "5":
                     if roomID != " ":
                         command = "EXIT"
-                    print("Saliendo")
+                    print("Exiting")
                     break
                 else:
                     print("Invalid option")
                     continue
 
             if command in ["REGISTER", "LOGIN"]:
-                username = input("Usuario: ").strip()
-                password = input("Contraseña: ").strip()
+                username = input("User: ").strip()
+                password = input("Password: ").strip()
 
             else:
                 password = " "
@@ -85,7 +84,7 @@ def main():
 
             message = f"{command} {username} {password} {token} {roomID}"
 
-            print(f"Mensaje enviado: '{command} {username} {password} {token} {roomID}'")
+            print(f"Message sent: '{command} {username} {password} {token} {roomID}'")
             client_socket.sendall(message.encode())
 
             response = client_socket.recv(BUFFER_SIZE).decode(encoding='windows-1252')
@@ -93,7 +92,7 @@ def main():
 
             if command == "LOGIN" and "FAILED" not in response:
                 token = response.strip()
-                print(f"Sesión iniciada con token: {token}")
+                print(f"Session initiated with token: {token}")
             elif command == "LOGOUT":
                 token = " "
             elif command == "CREATE":
@@ -102,12 +101,11 @@ def main():
                 RoomID = " "
 
     except socket.error as e:
-        print("Error de socket:", e)
+        print("Socket error:", e)
 
     finally:
         client_socket.close()
-        print("Conexión cerrada.")
+        print("Connection closed.")
 
 if __name__ == "__main__":
     main()
-
