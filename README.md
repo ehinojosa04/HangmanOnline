@@ -1,4 +1,4 @@
-# Proyect: Hangman Online
+# Project: Hangman Online
 
 ## Description
 This project is an online version of the classic Hangman game. In Hangman, one player thinks of a word, and the other players try to guess it letter by letter before running out of attempts. In this version the word is randomized and chosen by the server not the players so it more competitive.
