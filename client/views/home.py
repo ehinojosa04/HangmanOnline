@@ -6,10 +6,36 @@ class HomeScreen(tk.Frame):
         self.controller = controller
         self.client = client
         
-        tk.Label(self, text="Welcome to Hangman Online", font=("Arial", 16)).pack(pady=20)
+        # Configure the frame to expand and fill available space
+        self.pack(expand=True, fill="both")
         
-        tk.Button(self, text="Log In", command=lambda: controller.show_frame("LoginScreen")).pack(pady=5)
-        tk.Button(self, text="Sign Up", command=lambda: controller.show_frame("SignupScreen")).pack(pady=5)
-        tk.Button(self, text="About", command=lambda: controller.show_frame("AboutScreen")).pack(pady=5)
-        tk.Button(self, text="Exit", command=master.quit).pack(pady=5)
-
+        # Container frame for centered content
+        container = tk.Frame(self)
+        container.pack(expand=True)
+        
+        # Title
+        tk.Label(
+            container, 
+            text="Welcome to Hangman Online", 
+            font=("Arial", 16)
+        ).pack(pady=20, anchor="center")
+        
+        # Buttons (centered)
+        buttons = [
+            ("Log In", "LoginScreen"),
+            ("Sign Up", "SignupScreen"),
+            ("About", "AboutScreen"),
+            ("Exit", None)
+        ]
+        
+        for text, frame_name in buttons:
+            if frame_name:
+                cmd = lambda name=frame_name: controller.show_frame(name)
+            else:
+                cmd = master.quit
+            
+            tk.Button(
+                container, 
+                text=text, 
+                command=cmd
+            ).pack(pady=5, anchor="center")
