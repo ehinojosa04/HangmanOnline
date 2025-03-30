@@ -12,7 +12,7 @@ from utils.SocketClient import SocketClient
 class ClientGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Socket Client App")
+        self.title("Hangman Online App")
         self.geometry("400x400")
         
         self.client = SocketClient("127.0.0.1", 5000)

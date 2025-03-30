@@ -6,7 +6,7 @@ class HomeScreen(tk.Frame):
         self.controller = controller
         self.client = client
         
-        tk.Label(self, text="Welcome to the Socket Client", font=("Arial", 16)).pack(pady=20)
+        tk.Label(self, text="Welcome to Hangman Online", font=("Arial", 16)).pack(pady=20)
         
         tk.Button(self, text="Log In", command=lambda: controller.show_frame("LoginScreen")).pack(pady=5)
         tk.Button(self, text="Sign Up", command=lambda: controller.show_frame("SignupScreen")).pack(pady=5)
