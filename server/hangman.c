@@ -54,7 +54,7 @@ void playGame() {
     getRandomWord(filename, word);
     int wordLength = strlen(word);
 
-    // Initialize temporary word with dashes
+
     for (int i = 0; i < wordLength; i++) {
         tempWord[i] = '-';
     }
