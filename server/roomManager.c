@@ -71,3 +71,13 @@ void printPlayers(Room *room){
         printf("- %s\n", room -> users[i].username);
     }
 }
+
+Client *initClient(Client clients[]){
+    for (int i = 0; i < MAX_PLAYERS * MAX_ROOMS; i++){
+        if (clients[i].status == -1){
+            Client *client = &clients[i];
+            return client;
+        }
+    }
+    return NULL;
+}

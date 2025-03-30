@@ -23,17 +23,20 @@
 
 #define CODE_SIZE 4
 #define ROOM_CODE_CHARSET "ABCDEF1234567890"
-#define MAX_ROOMS 100
 
 int tcp_sd;
 int udp_sd;
 
 int PORT;
 
-int shmid;
+int rooms_shmid;
+int clients_shmid;
 
 Room *rooms;
 Room *room;
+
+Client *clients;
+Client *client;
 
 
 int room_count = 0;
@@ -81,12 +84,17 @@ int send_udp_message(const char *hostname, int port, const char *message, size_t
 
 
 void handle_client(int client_sd) {
+    client = initClient(clients);
+
     struct sockaddr_in client_addr;
     socklen_t addr_len = sizeof(client_addr);
 
     getpeername(client_sd, (struct sockaddr *)&client_addr, &addr_len);
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+
+    strcpy(client -> ip,client_ip);
+    client -> udp_port = PORT + 1;
 
     char msg[256];
 
@@ -123,6 +131,8 @@ void handle_client(int client_sd) {
                 send(client_sd, "FAILED\n", 6, 0);
             }
         } else if (strcmp(command, "LOGIN") == 0) {
+            client = initClient(clients, username);
+            printf("Client %s memaddress: %p\n",username, client);
             if (authenticate_user(db, username, password)) {
                 generate_token(token, TOKEN_SIZE);
                 store_token(db, username, token);
@@ -204,13 +214,13 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
 
-    shmid = shmget(IPC_PRIVATE, sizeof(Room) * MAX_ROOMS, IPC_CREAT | 0666);
-    if (shmid == -1) {
+    rooms_shmid = shmget(IPC_PRIVATE, sizeof(Room) * MAX_ROOMS, IPC_CREAT | 0666);
+    if (rooms_shmid == -1) {
         perror("shmget");
         exit(1);
     }
 
-    rooms = (Room *)shmat(shmid, NULL, 0);
+    rooms = (Room *)shmat(rooms_shmid, NULL, 0);
     if (rooms == (void *)-1) {
         perror("shmat");
         exit(1);
@@ -219,6 +229,25 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < MAX_ROOMS; i++){
         rooms[i].status = -1;
     }
+
+    clients_shmid = shmget(IPC_PRIVATE, sizeof(Client) * MAX_ROOMS * MAX_PLAYERS, IPC_CREAT | 0666);
+    if (clients_shmid == -1) {
+        perror("shmget");
+        exit(1);
+    }
+
+    clients = (Client *)shmat(clients_shmid, NULL, 0);
+    if (clients == (void *)-1) {
+        perror("shmat");
+        exit(1);
+    }
+
+    for (int i = 0; i < MAX_ROOMS * MAX_PLAYERS; i++){
+        strcpy(clients[i].username,"");
+    }
+
+
+
 
     struct sockaddr_in sind, pin;
     socklen_t addrlen = sizeof(pin);

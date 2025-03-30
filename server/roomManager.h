@@ -6,8 +6,10 @@
 #define CHARSET "ABCDEF1234567890"
 #define CODE_SIZE 4
 #define MAX_PLAYERS 4
+#define MAX_ROOMS 100
 
 typedef struct Client {
+    int status;
     char username[32];
     char ip[INET_ADDRSTRLEN];
     int udp_port;
@@ -34,3 +36,5 @@ Room *joinRoom(Room rooms[], int index, char *username, char *ip);
 int exitRoom(Room rooms[], int index, char *username);
 
 void printPlayers(Room *room);
+
+Client *initClient(Client clients[]);
