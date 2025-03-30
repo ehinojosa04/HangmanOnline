@@ -30,7 +30,7 @@ typedef struct Room {
 
 Room *createRoom(Room rooms[], int max_rooms, char *admin_username, char *ip);
 void generateRandomCode(char *code);
-int joinRoom(Room rooms[], int index, char *username, char *ip);
+Room *joinRoom(Room rooms[], int index, char *username, char *ip);
 int exitRoom(Room rooms[], int index, char *username);
 
-void printPlayers(Room rooms[], int index);
+void printPlayers(Room *room);

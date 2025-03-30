@@ -19,20 +19,21 @@ Room *createRoom(Room rooms[], int max_rooms, char *admin_username, char *ip){
     return NULL;
 }
 
-int joinRoom(Room rooms[], int index, char *username, char *ip){
+Room *joinRoom(Room rooms[], int index, char *username, char *ip){
     if (index < 0 || rooms[index].status == -1) {
-        return 0;
+        return NULL;
     }
 
     for (int i = 0; i < MAX_PLAYERS; i++){
         if (strlen(rooms[index].users[i].username) == 0) {
-            strcpy(rooms[index].users[i].username, username);
-            strcpy(rooms[index].users[i].ip, ip);
-            rooms[index].n_users++;
-            return 1;
+            Room *room = &rooms[index];
+            strcpy(room -> users[i].username, username);
+            strcpy(room -> users[i].ip, ip);
+            room -> n_users++;
+            return room;
         }
     }
-    return 0;
+    return NULL;
 }
 
 
@@ -64,9 +65,9 @@ void generateRandomCode(char *code){
     code[CODE_SIZE] = '\0';
 }
 
-void printPlayers(Room rooms[], int index){
-    printf("Players in Room %d:\n", index);
+void printPlayers(Room *room){
+    printf("Players in Room %d:\n", room -> index);
     for (int i = 0; i < MAX_PLAYERS; i++){
-        printf("- %s\n", rooms[index].users[i].username);
+        printf("- %s\n", room -> users[i].username);
     }
 }

@@ -31,7 +31,10 @@ int udp_sd;
 int PORT;
 
 int shmid;
+
 Room *rooms;
+Room *room;
+
 
 int room_count = 0;
 
@@ -131,30 +134,29 @@ void handle_client(int client_sd) {
         } else if (strcmp(command, "LOGOUT") == 0) {
             invalidate_token(db, username);
             send(client_sd, "SUCCESS\n", 8, 0);
-        } else if (strcmp(command, "CREATE") == 0) {
-            Room *newRoom; 
-            newRoom = createRoom(rooms, MAX_ROOMS, username, client_ip);
-            if (newRoom != NULL){
-                printf("New room created successfuly in: %d\n", newRoom->index);
-                printPlayers(rooms, atoi(roomID));
+        } else if (strcmp(command, "CREATE") == 0) { 
+            room = createRoom(rooms, MAX_ROOMS, username, client_ip);
+            if (room != NULL){
+                printf("New room created successfuly in: %d\n", room->index);
+                printPlayers(room);
                 room_count++;
 
                 char index[16];
-                int len = sprintf(index, "%d", newRoom->index);
+                int len = sprintf(index, "%d", room->index);
                 send(client_sd, index, len, 0);
             }
             else{
                 send(client_sd, "FAILED\n", 6, 0);
             }
         }else if (strcmp(command, "JOIN") == 0) {
-            if (joinRoom(rooms,  atoi(roomID), username, client_ip)){
-                printf("User %s has joined room %s successfuly\n", username, roomID);
-                printPlayers(rooms, atoi(roomID));
+            room = joinRoom(rooms, atoi(roomID), username, client_ip);
+            if (room != NULL){
+                printf("User %s has joined room %d successfuly\n", username, room->index);
+                printPlayers(room);
 
                 char udp_msg[256];
                 sprintf(udp_msg, "Player %s has joined the room %s\n", username, roomID);
 
-                Room *room = &rooms[atoi(roomID)];
                 for (int i = 0; i < MAX_PLAYERS; i++) {
                     if (room->users[i].username[0] != '\0') {
                         printf("Sending update to player %s\n", room->users[i].username);
@@ -174,7 +176,7 @@ void handle_client(int client_sd) {
         } else if (strcmp(command, "EXIT") == 0) {
             if (exitRoom(rooms, atoi(roomID), username)){
                 printf("User %s has successfuly left room %s", username, roomID);
-                printPlayers(rooms, atoi(roomID));
+                printPlayers(room);
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
                 send(client_sd, "FAILED\n", 6, 0);
@@ -247,18 +249,6 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-
-/*
-    struct sockaddr_in udp_addr;
-    udp_addr.sin_family = AF_INET;
-    udp_addr.sin_addr.s_addr = INADDR_ANY;
-    udp_addr.sin_port = htons(PORT+1);
-
-    if (bind(udp_sd, (struct sockaddr *)&udp_addr, sizeof(udp_addr)) == -1) {
-        perror("udp bind");
-        exit(1);
-    }
-*/
 
     if (listen(tcp_sd, 5) == -1) {
         perror("listen");
