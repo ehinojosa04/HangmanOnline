@@ -13,7 +13,7 @@ class ClientGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Hangman Online App")
-        self.geometry("615x415")
+        self.geometry("620x420")
         
         self.client = SocketClient("127.0.0.1", 5000)
         self.client.connect()
