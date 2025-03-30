@@ -12,9 +12,16 @@ class AboutScreen(tk.Frame):
         
         # App Description
         about_text = (
-            "This is a socket-based client application.\n"
-            "You can log in, sign up, create or join rooms, and interact with others.\n\n"
-            "Developed as a simple demonstration of socket programming.\n\n"
+            "This project is an online version of the classic Hangman game. \n"
+            "In Hangman, one player thinks of a word, and the other players try to guess it \n letter by letter before running out of attempts. \n"
+            "You can log in, sign up, create or join rooms, and interact with others in Hangman Online.\n\n"
+            "Developed By:\n"
+            " - Emiliano Hinojosa Guzmán (0252496)\n"
+            " - Diego Amin Hernández Pallares (0250146)\n"
+            " - Mario Alejandro Rodriguez Gonzalez (0235810)\n\n"
+            "Subject: Distributed Computing\n"
+            "Professor: Dr. Juan Carlos López Pimentel\n"
+            "Date: 03/04/2025\n"
             "Version 1.0"
         )
         tk.Label(self, text=about_text, justify=tk.LEFT).pack(padx=20, pady=10)
