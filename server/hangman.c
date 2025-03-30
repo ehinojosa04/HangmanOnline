@@ -2,6 +2,7 @@
 
 int points = 0;
 
+/*
 int main() {
     int option;
     srand(time(NULL));
@@ -34,6 +35,8 @@ int main() {
     
     return 0;
 }
+
+*/
 
 void clearScreen() {
     #ifdef _WIN32
