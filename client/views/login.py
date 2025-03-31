@@ -25,9 +25,10 @@ class LoginScreen(tk.Frame):
     def login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
-        success, response = self.client.send_command("LOGIN", username, password)
-        
+        success, response = self.client.send_command("LOGIN", username=username, password=password)
         if success:
+            print(f"DEBUG: Username set to: {self.client.username}")  # Verifica que se guardó
+            self.client.username = username
             self.controller.show_frame("MainMenuScreen")
         else:
             self.message_label.config(text=response)

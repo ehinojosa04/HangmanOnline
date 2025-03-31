@@ -62,7 +62,7 @@ class SocketClient:
             
             # Update internal state based on response
             if command == "LOGIN" and "FAILED" not in response:
-                self.token = response.strip()
+                self.token = response.strip().encode('ascii', 'ignore').decode()
                 self.username = username
                 return True, f"Session initiated with token: {self.token}"
             elif command == "LOGOUT":
@@ -97,7 +97,39 @@ class SocketClient:
     def get_current_room(self):
         """Get current room ID"""
         return self.roomID
+    
 
     def get_username(self):
         """Get current username"""
         return self.username
+    
+    # En socket_client.py
+    def get_room_info(self, room_id=None):
+        target_room = room_id or self.roomID
+        if not target_room:
+            return False, "No room specified"
+        
+        # Si ya tenemos datos locales (de CREATE/JOIN reciente)
+        if hasattr(self, '_cached_room_info'):
+            return True, self._cached_room_info
+            
+        # Si necesitamos forzar una actualización
+        success, response = self.send_command("JOIN", roomID=target_room)
+        if success:
+            # Construye datos básicos de sala
+            room_data = {
+                "index": target_room,
+                "name": f"Room {target_room}",
+                "admin": {"username": self.username},  # El admin es quien se unió
+                "users": [self.username],
+                "n_users": 1,
+                "isPrivate": False,
+                "status": 0
+            }
+            self._cached_room_info = room_data
+            return True, room_data
+        return False, response
+    def get_room_data(self):
+        """Versión simplificada para RoomScreen"""
+        success, data = self.get_room_info()
+        return data if success else None
