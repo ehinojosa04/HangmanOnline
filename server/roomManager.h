@@ -20,8 +20,8 @@ typedef struct Room {
     int isPrivate;
     char password[4];
     
-    Client admin;
-    Client users[4];
+    Client *admin;
+    Client *users[4]; 
     int n_users;
 
     int index;
@@ -30,9 +30,9 @@ typedef struct Room {
     char word[32];
 } Room;
 
-Room *createRoom(Room rooms[], int max_rooms, char *admin_username, char *ip);
+Room *createRoom(Room rooms[], int max_rooms, Client *client);
 void generateRandomCode(char *code);
-Room *joinRoom(Room rooms[], int index, char *username, char *ip);
+Room *joinRoom(Room rooms[], int index, Client *client);
 int exitRoom(Room rooms[], int index, char *username);
 
 void printPlayers(Room *room);

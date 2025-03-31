@@ -85,7 +85,6 @@ int send_udp_message(const char *hostname, int port, const char *message, size_t
 
 void handle_client(int client_sd) {
     client = initClient(clients);
-
     struct sockaddr_in client_addr;
     socklen_t addr_len = sizeof(client_addr);
 
@@ -131,13 +130,12 @@ void handle_client(int client_sd) {
                 send(client_sd, "FAILED\n", 6, 0);
             }
         } else if (strcmp(command, "LOGIN") == 0) {
-            client = initClient(clients, username);
-            printf("Client %s memaddress: %p\n",username, client);
             if (authenticate_user(db, username, password)) {
                 generate_token(token, TOKEN_SIZE);
                 store_token(db, username, token);
+                strcpy(client -> username, username);
+                printf("LOGIN\n");
                 send(client_sd, token, strlen(token), 0);
-
             } else {
                 send(client_sd, "FAILED\n", 6, 0);
             }
@@ -145,7 +143,7 @@ void handle_client(int client_sd) {
             invalidate_token(db, username);
             send(client_sd, "SUCCESS\n", 8, 0);
         } else if (strcmp(command, "CREATE") == 0) { 
-            room = createRoom(rooms, MAX_ROOMS, username, client_ip);
+            room = createRoom(rooms, MAX_ROOMS, client);
             if (room != NULL){
                 printf("New room created successfuly in: %d\n", room->index);
                 printPlayers(room);
@@ -159,25 +157,26 @@ void handle_client(int client_sd) {
                 send(client_sd, "FAILED\n", 6, 0);
             }
         }else if (strcmp(command, "JOIN") == 0) {
-            room = joinRoom(rooms, atoi(roomID), username, client_ip);
+            room = joinRoom(rooms, atoi(roomID), client);
             if (room != NULL){
                 printf("User %s has joined room %d successfuly\n", username, room->index);
                 printPlayers(room);
-
+                
                 char udp_msg[256];
                 sprintf(udp_msg, "Player %s has joined the room %s\n", username, roomID);
 
                 for (int i = 0; i < MAX_PLAYERS; i++) {
-                    if (room->users[i].username[0] != '\0') {
-                        printf("Sending update to player %s\n", room->users[i].username);
+                    if (room->users[i] != NULL) {
+                        printf("Sending update to player %s\n", room->users[i] -> username);
                             printf("message: '%s'", udp_msg);
 
                     if (send_udp_message(client_ip, PORT+1, udp_msg, strlen(udp_msg)) < 0) {
                         printf("Failed to send UDP update to player\n");
+                 
                     }
+                    
                 }
             }
-
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
                 send(client_sd, "FAILED\n", 6, 0);
@@ -243,7 +242,13 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < MAX_ROOMS * MAX_PLAYERS; i++){
-        strcpy(clients[i].username,"");
+        clients[i].status = -1;
+    }
+
+    for (int i = 0; i < MAX_ROOMS; i++){
+        for (int j = 0; j < MAX_PLAYERS; j++){
+            rooms[i].users[j] = NULL;
+        }
     }
 
 
