@@ -8,6 +8,12 @@
 #define MAX_PLAYERS 4
 #define MAX_ROOMS 100
 
+enum status {
+    INACTIVE = -1,
+    WAITING,
+    ACTIVE
+};
+
 typedef struct Client {
     int status;
     char username[32];
@@ -36,5 +42,6 @@ Room *joinRoom(Room rooms[], int index, Client *client);
 int exitRoom(Room rooms[], int index, char *username);
 
 void printPlayers(Room *room);
+void getRoomMessage(Room *room, char message[]);
 
 Client *initClient(Client clients[]);

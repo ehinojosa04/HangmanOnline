@@ -2,26 +2,34 @@
 #include <string.h>
 
 Room *createRoom(Room rooms[], int max_rooms, Client *client){
+    printf("Attempting to create a room for %p %s\n", client, client->username);
     for (int i = 0; i < max_rooms; i++){
-        if(rooms[i].status == -1){
+        if(rooms[i].status == INACTIVE){
             Room *room = &rooms[i];
-            room -> status = 0;
-            room -> n_users = 1;
-            room -> index = i;
-            room -> admin = client;
-
+            room->status = WAITING;
+            room->n_users = 0;
+            room->index = i;
+            
+            // Set admin AFTER joining room
             generateRandomCode(rooms[i].password);
-
-            joinRoom(rooms, i, client);
-
-            return room;
+            
+            // First join the room
+            Room *joined_room = joinRoom(rooms, i, client);
+            
+            if (joined_room != NULL) {
+                // Then set the admin pointer - this ensures it's preserved
+                joined_room->admin = client;
+                printf("Admin set to %p %s\n", joined_room->admin, joined_room->admin->username);
+            }
+            
+            return joined_room;
         }
     }
     return NULL;
 }
 
 Room *joinRoom(Room rooms[], int index, Client *client){
-    if (index < 0 || rooms[index].status == -1) {
+    if (index < 0 || rooms[index].status != WAITING) {
         return NULL;
     }
     
@@ -30,6 +38,8 @@ Room *joinRoom(Room rooms[], int index, Client *client){
         if (room -> users[i] == NULL) {
             room -> users[i] = client;
             room -> n_users++;
+
+            client -> status = WAITING;
             return room;
         }
     }
@@ -38,13 +48,13 @@ Room *joinRoom(Room rooms[], int index, Client *client){
 
 
 int exitRoom(Room rooms[], int index, char *username){
-    if (index < 0 || rooms[index].status == -1) {
+    if (index < 0 || rooms[index].status == INACTIVE) {
         return 0;
     }
 
     if (strcmp(rooms[index].admin -> username, username) == 0) {
         memset(&rooms[index], 0, sizeof(Room));
-        rooms[index].status = -1;
+        rooms[index].status = INACTIVE;
         return 1;
     }
 
@@ -75,7 +85,7 @@ void printPlayers(Room *room){
 
 Client *initClient(Client clients[]){
     for (int i = 0; i < MAX_PLAYERS * MAX_ROOMS; i++){
-        if (clients[i].status == -1){
+        if (clients[i].status == INACTIVE){
             Client *client = &clients[i];
             client -> status = 0;
 
@@ -84,4 +94,25 @@ Client *initClient(Client clients[]){
         }
     }
     return NULL;
+}
+
+void getRoomMessage(Room *room, char message[]){
+    if (room -> status == INACTIVE) strcpy(message, "INACTIVE\n");
+    else if (room -> status == WAITING){
+        sprintf(message, "WAITING,%s,%s,%s,%s\n", 
+                room -> users[0] ? room -> users [0] ->username : "",
+                room -> users[1] ? room -> users [1] ->username : "",
+                room -> users[2] ? room -> users [2] ->username : "",
+                room -> users[3] ? room -> users [3] ->username : ""
+        );
+    }
+    else if (room -> status == ACTIVE){
+        sprintf(message, "STATUS: PLAYING\nPLAYERS:%s,%s,%s,%s\nWORD: %s\n", 
+                room -> users[0] ? room -> users [0] ->username : "",
+                room -> users[1] ? room -> users [1] ->username : "",
+                room -> users[2] ? room -> users [2] ->username : "",
+                room -> users[3] ? room -> users [3] ->username : "",
+                room -> word
+        );
+    }
 }

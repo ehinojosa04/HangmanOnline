@@ -11,6 +11,8 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+#include <pthread.h>
+#include <time.h>
 
 #include "hangman.h"
 #include "authentication.h"
@@ -33,16 +35,19 @@ int rooms_shmid;
 int clients_shmid;
 
 Room *rooms;
-Room *room;
+//Room *room;
 
 Client *clients;
-Client *client;
+//Client *client;
 
 
 int room_count = 0;
 
+volatile int keep_running = 1;
+
 void aborta_handler(int sig) {
-    printf(".... Shutting down server (signal %d)\n", sig);
+    printf(".... Shutting down server (signal %d)\n", sig);\
+    keep_running = 0;
     close(tcp_sd);
     close(udp_sd);
     exit(0);
@@ -76,14 +81,60 @@ int send_udp_message(const char *hostname, int port, const char *message, size_t
         return -1;
     }
     
-    printf("Sent %zd bytes to %s:%d\n", bytes_sent, hostname, port);
+    //printf("Sent %zd bytes to %s:%d\n", bytes_sent, hostname, port);
     
     close(sockfd);
     return 0;
 }
 
+void broadcast_to_room(Room *room, const char *message) {
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (room->users[i] != NULL) {
+            Client *player = room->users[i];
+            //printf("Sending update to player %s at %s:%d\n", 
+            //       player->username, player->ip, player->udp_port);
+            
+            if (send_udp_message(player->ip, player->udp_port, message, strlen(message)) < 0) {
+                printf("Failed to send UDP update to player %s\n", player->username);
+            }
+        }
+    }
+}
+
+void* update_thread_function(void* arg) {
+    while (keep_running) {
+        for (int i = 0; i < MAX_ROOMS; i++) {
+            if (rooms[i].status > INACTIVE) {
+                char update_msg[256];
+                getRoomMessage(&rooms[i], update_msg);
+                broadcast_to_room(&rooms[i], update_msg);
+            }
+        }
+        
+        sleep(2);
+    }
+    
+    return NULL;
+}
+
+pthread_t start_update_thread() {
+    pthread_t thread_id;
+    if (pthread_create(&thread_id, NULL, update_thread_function, NULL) != 0) {
+        perror("Failed to create update thread");
+        exit(1);
+    }
+    printf("UDP started\n");
+    return thread_id;
+}
+
+void stop_update_thread(pthread_t thread_id) {
+    keep_running = 0;
+    pthread_join(thread_id, NULL);
+}
 
 void handle_client(int client_sd) {
+    Client *client;
+    Room *room;
     client = initClient(clients);
     struct sockaddr_in client_addr;
     socklen_t addr_len = sizeof(client_addr);
@@ -112,7 +163,8 @@ void handle_client(int client_sd) {
         }
 
         msg[received] = '\0';
-        printf("Received: %s\n", msg);
+        printf("Received: %s\nFrom: %s %p\n", msg, client -> username, client);
+
 
         char token[TOKEN_SIZE];
         char command[16], username[32], password[32] = "", received_token[TOKEN_SIZE + 1] = "", roomID[CODE_SIZE] = "";
@@ -146,6 +198,7 @@ void handle_client(int client_sd) {
             room = createRoom(rooms, MAX_ROOMS, client);
             if (room != NULL){
                 printf("New room created successfuly in: %d\n", room->index);
+                printf("You %p %s, are the admin\n", room -> admin, room -> admin -> username);
                 printPlayers(room);
                 room_count++;
 
@@ -159,22 +212,20 @@ void handle_client(int client_sd) {
         }else if (strcmp(command, "JOIN") == 0) {
             room = joinRoom(rooms, atoi(roomID), client);
             if (room != NULL){
-                printf("User %s has joined room %d successfuly\n", username, room->index);
+                printf("User %s has joined room %d successfuly\n", client -> username, room->index);
                 printPlayers(room);
                 
                 char udp_msg[256];
-                sprintf(udp_msg, "Player %s has joined the room %s\n", username, roomID);
-
+                sprintf(udp_msg, "Player %s has joined the room %s\n", client -> username, roomID);
+                
                 for (int i = 0; i < MAX_PLAYERS; i++) {
                     if (room->users[i] != NULL) {
-                        printf("Sending update to player %s\n", room->users[i] -> username);
-                            printf("message: '%s'", udp_msg);
+                        //printf("Sending update to player %s\n", room->users[i] -> username);
+                            //printf("message: '%s'", udp_msg);
 
                     if (send_udp_message(client_ip, PORT+1, udp_msg, strlen(udp_msg)) < 0) {
-                        printf("Failed to send UDP update to player\n");
-                 
+                        printf("Failed to send UDP update to player\n"); 
                     }
-                    
                 }
             }
                 send(client_sd, "SUCCESS\n", 8, 0);
@@ -186,8 +237,18 @@ void handle_client(int client_sd) {
             if (exitRoom(rooms, atoi(roomID), username)){
                 printf("User %s has successfuly left room %s", username, roomID);
                 printPlayers(room);
+                client ->status = INACTIVE;
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
+                send(client_sd, "FAILED\n", 6, 0);
+            }
+        } else if (strcmp(command, "START") == 0) {
+            if (client == room -> admin){
+                room -> status = ACTIVE;
+                printf("Admin %s has successfuly started room %d", room -> admin -> username, room -> index);
+                send(client_sd, "SUCCESS\n", 8, 0);
+            } else {
+                printf("ERROR Admin is %p %s, not %p %s\n", room -> admin, room -> admin -> username, client, client -> username);
                 send(client_sd, "FAILED\n", 6, 0);
             }
 
@@ -226,7 +287,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < MAX_ROOMS; i++){
-        rooms[i].status = -1;
+        rooms[i].status = INACTIVE;
     }
 
     clients_shmid = shmget(IPC_PRIVATE, sizeof(Client) * MAX_ROOMS * MAX_PLAYERS, IPC_CREAT | 0666);
@@ -242,7 +303,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < MAX_ROOMS * MAX_PLAYERS; i++){
-        clients[i].status = -1;
+        clients[i].status = INACTIVE;
     }
 
     for (int i = 0; i < MAX_ROOMS; i++){
@@ -250,8 +311,6 @@ int main(int argc, char *argv[]) {
             rooms[i].users[j] = NULL;
         }
     }
-
-
 
 
     struct sockaddr_in sind, pin;
@@ -289,6 +348,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    pthread_t update_thread = start_update_thread();
+
     printf("IP ADDRESS: %s\nPort: %d\nListening...\n", IP, PORT);
 
     while (1) {
@@ -315,6 +376,7 @@ int main(int argc, char *argv[]) {
 
     close(tcp_sd);
     close(udp_sd);
+    stop_update_thread(update_thread);
     return 0;
 }
 

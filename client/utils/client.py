@@ -46,8 +46,8 @@ def main():
                     print("Invalid option")
                     continue
 
-            else:
-                options = ["Log out", "Create Room", "Join Room","Exit Room", "Close Program"]
+            elif roomID == " ":
+                options = ["Log out", "Create Room", "Join Room", "Close Program"]
 
                 print("\nOptions")
                 for idx,o in enumerate(options, start=1):
@@ -62,8 +62,6 @@ def main():
                 elif option == "3":
                     command = "JOIN"
                 elif option == "4":
-                    command = "EXIT"
-                elif option == "5":
                     if roomID != " ":
                         command = "EXIT"
                     print("Exiting")
@@ -71,6 +69,30 @@ def main():
                 else:
                     print("Invalid option")
                     continue
+
+            else:
+                options = ["Start Room", "Exit Room", "Close Program"]
+
+                print("\nOptions")
+                for idx,o in enumerate(options, start=1):
+                    print(f"{idx}. {o}")
+
+                option = input("Select an option: ")
+                
+                if option == "1":
+                    command = "START"
+                elif option == "2":
+                    command = "EXIT"
+                elif option == "3":
+                    if roomID != " ":
+                        command = "EXIT"
+                    print("Exiting")
+                    break
+                else:
+                    print("Invalid option")
+                    continue
+
+                
 
             if command in ["REGISTER", "LOGIN"]:
                 username = input("User: ").strip()
@@ -80,7 +102,7 @@ def main():
                 password = " "
                 
                 if command == "JOIN":
-                    roomID = input("RoomID: ")
+                    roomID = input("RoomID: ").strip()
 
             message = f"{command} {username} {password} {token} {roomID}"
 
@@ -96,9 +118,9 @@ def main():
             elif command == "LOGOUT":
                 token = " "
             elif command == "CREATE":
-                RoomID = response.strip()
+                roomID = response.strip()
             elif (command == "JOIN" and "FAILED" in response) or (command == "EXIT" and "FAILED" not in response):
-                RoomID = " "
+                roomID = " "
 
     except socket.error as e:
         print("Socket error:", e)
