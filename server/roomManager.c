@@ -1,54 +1,65 @@
 #include "roomManager.h"
 #include <string.h>
 
-Room *createRoom(Room rooms[], int max_rooms, char *admin_username, char *ip){
+Room *createRoom(Room rooms[], int max_rooms, Client *client){
+    printf("Attempting to create a room for %p %s\n", client, client->username);
     for (int i = 0; i < max_rooms; i++){
-        if(rooms[i].status == -1){
-            rooms[i].status = 0;
-            rooms[i].n_users = 1;
-            rooms[i].index = i; 
-
-            strcpy(rooms[i].admin.username, admin_username);
+        if(rooms[i].status == INACTIVE){
+            Room *room = &rooms[i];
+            room->status = WAITING;
+            room->n_users = 0;
+            room->index = i;
+            
+            // Set admin AFTER joining room
             generateRandomCode(rooms[i].password);
-
-            joinRoom(rooms, i, admin_username, ip);
-
-            return &rooms[i];
+            
+            // First join the room
+            Room *joined_room = joinRoom(rooms, i, client);
+            
+            if (joined_room != NULL) {
+                // Then set the admin pointer - this ensures it's preserved
+                joined_room->admin = client;
+                printf("Admin set to %p %s\n", joined_room->admin, joined_room->admin->username);
+            }
+            
+            return joined_room;
         }
     }
     return NULL;
 }
 
-int joinRoom(Room rooms[], int index, char *username, char *ip){
-    if (index < 0 || rooms[index].status == -1) {
-        return 0;
+Room *joinRoom(Room rooms[], int index, Client *client){
+    if (index < 0 || rooms[index].status != WAITING) {
+        return NULL;
     }
-
+    
+    Room *room = &rooms[index];
     for (int i = 0; i < MAX_PLAYERS; i++){
-        if (strlen(rooms[index].users[i].username) == 0) {
-            strcpy(rooms[index].users[i].username, username);
-            strcpy(rooms[index].users[i].ip, ip);
-            rooms[index].n_users++;
-            return 1;
+        if (room -> users[i] == NULL) {
+            room -> users[i] = client;
+            room -> n_users++;
+
+            client -> status = WAITING;
+            return room;
         }
     }
-    return 0;
+    return NULL;
 }
 
 
 int exitRoom(Room rooms[], int index, char *username){
-    if (index < 0 || rooms[index].status == -1) {
+    if (index < 0 || rooms[index].status == INACTIVE) {
         return 0;
     }
 
-    if (strcmp(rooms[index].admin.username, username) == 0) {
+    if (strcmp(rooms[index].admin -> username, username) == 0) {
         memset(&rooms[index], 0, sizeof(Room));
-        rooms[index].status = -1;
+        rooms[index].status = INACTIVE;
         return 1;
     }
 
     for (int i = 0; i < MAX_PLAYERS; i++){
-        if (strcmp(rooms[index].users[i].username, username) == 0) {
+        if (strcmp(rooms[index].users[i] -> username, username) == 0) {
             memset(&rooms[index].users[i], 0, sizeof(Client));
             rooms[index].n_users--;
             return 1;
@@ -64,9 +75,44 @@ void generateRandomCode(char *code){
     code[CODE_SIZE] = '\0';
 }
 
-void printPlayers(Room rooms[], int index){
-    printf("Players in Room %d:\n", index);
+void printPlayers(Room *room){
+    printf("Players in Room %d:\n", room -> index);
     for (int i = 0; i < MAX_PLAYERS; i++){
-        printf("- %s\n", rooms[index].users[i].username);
+        if (room -> users[i] != NULL) printf("- %s\n", room -> users[i] -> username);
+    }
+    printf("All player printed.\n");
+}
+
+Client *initClient(Client clients[]){
+    for (int i = 0; i < MAX_PLAYERS * MAX_ROOMS; i++){
+        if (clients[i].status == INACTIVE){
+            Client *client = &clients[i];
+            client -> status = 0;
+
+            printf("Client initialized in %p", client);
+            return client;
+        }
+    }
+    return NULL;
+}
+
+void getRoomMessage(Room *room, char message[]){
+    if (room -> status == INACTIVE) strcpy(message, "INACTIVE\n");
+    else if (room -> status == WAITING){
+        sprintf(message, "WAITING,%s,%s,%s,%s\n", 
+                room -> users[0] ? room -> users [0] ->username : "",
+                room -> users[1] ? room -> users [1] ->username : "",
+                room -> users[2] ? room -> users [2] ->username : "",
+                room -> users[3] ? room -> users [3] ->username : ""
+        );
+    }
+    else if (room -> status == ACTIVE){
+        sprintf(message, "STATUS: PLAYING\nPLAYERS:%s,%s,%s,%s\nWORD: %s\n", 
+                room -> users[0] ? room -> users [0] ->username : "",
+                room -> users[1] ? room -> users [1] ->username : "",
+                room -> users[2] ? room -> users [2] ->username : "",
+                room -> users[3] ? room -> users [3] ->username : "",
+                room -> word
+        );
     }
 }
