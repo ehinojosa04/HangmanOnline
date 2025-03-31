@@ -24,7 +24,27 @@ class SocketClient:
         except socket.error as e:
             self.connected = False
             return False, f"Connection error: {e}"
-
+        
+    def leave_current_room(self):
+        """Send an EXIT command if we're currently in a room."""
+        if self.roomID.strip() and self.roomID != " ":
+            # Si el roomID es "0", lo tratamos como que no hay sala activa.
+            if self.roomID.strip() == "0":
+                print("[DEBUG] RoomID is 0, treating as no room to leave.")
+                self.roomID = " "
+                return True, "No room to leave"
+            success, response = self.send_command("EXIT", roomID=self.roomID)
+            if success:
+                print("[DEBUG] Successfully left room")
+                self.roomID = " "
+                return True, response
+            else:
+                print(f"[DEBUG] Failed to leave room: {response}")
+                return False, response
+        else:
+            print("[DEBUG] Not in a room, nothing to leave.")
+            return False, "No room to leave"
+        
     def disconnect(self):
         """Close the connection"""
         if self.client_socket:
