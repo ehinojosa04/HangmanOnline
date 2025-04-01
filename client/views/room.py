@@ -32,7 +32,6 @@ class RoomScreen(tk.Frame):
 
 
         self.start_game_button = tk.Button(self, text="Start Game", command=self.start_game)
-        self.leave_button = tk.Button(self, text="Leave Room", command=self.leave_room)
 
     def update_ui(self, room_info):
         """Con manejo de campos faltantes"""
@@ -92,11 +91,4 @@ class RoomScreen(tk.Frame):
         messagebox.showinfo("Game", "Game starting...")
         self.controller.show_frame("HangmanGameScreen")
 
-    def leave_room(self):
-        success, response = self.client.send_command("EXIT", roomID=self.client.get_current_room())
-        if success:
-            messagebox.showinfo("Success", "You have left the room.")
-            self.controller.show_frame("MainMenuScreen")
-        else:
-            messagebox.showerror("Error", f"Failed to leave room: {response}")
 

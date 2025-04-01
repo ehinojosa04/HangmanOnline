@@ -51,7 +51,7 @@ class MainMenuScreen(tk.Frame):
 
     def create_room(self):
         # Abandonar la sala actual (si existe) antes de crear una nueva.
-        self.client.leave_current_room()
+        
         success, response = self.client.send_command("CREATE")
         if success:
             room_id = response.strip()
@@ -84,7 +84,7 @@ class MainMenuScreen(tk.Frame):
                 messagebox.showerror("Error", "Room ID must be a number")
                 return
             # Abandonar la sala actual antes de unirse a otra.
-            self.client.leave_current_room()
+           
             success, response = self.client.send_command(
                 "JOIN", 
                 username=self.client.username,
