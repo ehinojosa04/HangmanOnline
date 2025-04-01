@@ -1,6 +1,8 @@
 #include "roomManager.h"
 #include <string.h>
 
+#define MAX_UDP 268
+
 Room *createRoom(Room rooms[], int max_rooms, Client *client){
     printf("Attempting to create a room for %p %s\n", client, client->username);
     for (int i = 0; i < max_rooms; i++){
@@ -20,7 +22,7 @@ Room *createRoom(Room rooms[], int max_rooms, Client *client){
                 // Then set the admin pointer - this ensures it's preserved
                 joined_room->admin = client;
                 printf("Admin set to %p %s\n", joined_room->admin, joined_room->admin->username);
-            }
+            } 
             
             return joined_room;
         }
@@ -135,18 +137,20 @@ void getRoomMessage(Room *room, char message[]) {
     }
     strcat(users_json, "]");
 
+    char *roomStatus = (room->status == 1) ? "PLAYING" : "WAITING";
+
     // Format JSON message
     if (room->status == INACTIVE) {
-        snprintf(message, 256, "{\"status\": \"INACTIVE\"}");
-    } else if (room->status == WAITING) {
-        snprintf(message, 256, 
-                 "{\"status\": \"WAITING\", \"players\": %s}", 
-                 users_json);
-    } else if (room->status == ACTIVE) {
-        snprintf(message, 256, 
-                 "{\"status\": \"PLAYING\", \"admin\":%s,\"players\": %s, \"word\": \"%s\"}", room->admin->username,
-                 users_json, room->word);
+        snprintf(message, MAX_UDP, "{\"status\": \"INACTIVE\"}");
+    } else {
+        snprintf(message, MAX_UDP, 
+                "{\"index\": \"%d\",\"status\": \"%s\", \"admin\":\"%s\",\"players\": %s, \"word\": \"%s\"}", 
+                room->index, 
+                roomStatus,
+                room->admin->username, 
+                users_json, 
+                room->word);
     }
 
-    printf("%s",message);
+    //printf("%s",message);
 }

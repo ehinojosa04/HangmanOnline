@@ -82,6 +82,7 @@ class ClientState:
             room_data = json.loads(decoded_message)
             if room_data != self.room_data:  # Only update if there's a change
                 self.room_data = room_data
+                print(room_data)
                 if room_screen:
                     room_screen.update_room_info()  # Call UI update method
         except json.JSONDecodeError:
