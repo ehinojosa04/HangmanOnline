@@ -17,9 +17,11 @@ enum status {
 typedef struct Client {
     int status;
     char username[32];
+    
     char ip[INET_ADDRSTRLEN];
     int udp_port;
 
+    int turn;
 } Client;
 
 typedef struct Room {
@@ -32,13 +34,19 @@ typedef struct Room {
 
     int index;
     int status;
+   
+    int attempted_letters[26];
+    int turn;
 
     char word[32];
 } Room;
 
 Room *createRoom(Room rooms[], int max_rooms, Client *client);
+
 void generateRandomCode(char *code);
+
 Room *joinRoom(Room rooms[], int index, Client *client);
+
 int exitRoom(Room rooms[], int index, char *username);
 
 void printPlayers(Room *room);

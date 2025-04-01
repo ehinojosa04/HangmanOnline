@@ -246,9 +246,20 @@ void handle_client(int client_sd) {
             if (client == room -> admin){
                 room -> status = ACTIVE;
                 printf("Admin %s has successfuly started room %d", room -> admin -> username, room -> index);
+                getRandomWord("words.txt", room->word);
+
+                for (int i = 0; i < 26; i++) room -> attempted_letters[i] = UNATTEMPTED;
+
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
-                printf("ERROR Admin is %p %s, not %p %s\n", room -> admin, room -> admin -> username, client, client -> username);
+                send(client_sd, "FAILED\n", 6, 0);
+            }
+        } else if (strcmp(command, "GUESS") == 0) {
+            if (room -> turn == client -> turn){
+
+                
+                send(client_sd, "SUCCESS\n", 8, 0);
+            } else {
                 send(client_sd, "FAILED\n", 6, 0);
             }
 

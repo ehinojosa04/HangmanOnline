@@ -9,15 +9,12 @@ Room *createRoom(Room rooms[], int max_rooms, Client *client){
             room->status = WAITING;
             room->n_users = 0;
             room->index = i;
-            
-            // Set admin AFTER joining room
+
             generateRandomCode(rooms[i].password);
             
-            // First join the room
             Room *joined_room = joinRoom(rooms, i, client);
             
             if (joined_room != NULL) {
-                // Then set the admin pointer - this ensures it's preserved
                 joined_room->admin = client;
                 printf("Admin set to %p %s\n", joined_room->admin, joined_room->admin->username);
             }
@@ -40,6 +37,7 @@ Room *joinRoom(Room rooms[], int index, Client *client){
             room -> n_users++;
 
             client -> status = WAITING;
+            client -> turn = i;
             return room;
         }
     }
