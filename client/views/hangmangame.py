@@ -4,10 +4,9 @@ import random
 import os
 
 class HangmanGameScreen(tk.Frame):
-    def __init__(self, parent, controller, client):
+    def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
-        self.client = client
         
         # Variables del juego
         self.word_var = StringVar()

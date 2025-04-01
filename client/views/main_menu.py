@@ -1,19 +1,17 @@
-# views/main_menu.py
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 
 class MainMenuScreen(tk.Frame):
-    def __init__(self, master, controller, client):
+    def __init__(self, master, controller):
         super().__init__(master)
         self.controller = controller
-        self.client = client
-        
+
         # Title Label
-        self.title_label = tk.Label(self, text=f"Welcome, {self.client.get_username()}", font=("Arial", 16))
+        self.title_label = tk.Label(self, text="Welcome", font=("Arial", 16))
         self.title_label.pack(pady=20)
 
         # Room Info Label
-        self.room_label = tk.Label(self, text="")
+        self.room_label = tk.Label(self, text="Not in a room")
         self.room_label.pack(pady=10)
 
         # Buttons
@@ -29,20 +27,16 @@ class MainMenuScreen(tk.Frame):
         self.logout_button.pack(pady=5)
         self.exit_button.pack(pady=5)
 
-        self.update_username()
+    def update_ui(self):
+        """Update UI elements dynamically based on client state."""
+        client_state = self.controller.get_client_state()
+        username = client_state.username
+        room_data = client_state.room_data  # Pull room data from ClientState
 
-    def update_username(self):
-        """Update the username shown."""
-        username = self.client.get_username()
-        print(f"DEBUG: Current username from client: {username}")
         self.title_label.config(text=f"Welcome, {username if username else 'Guest'}")
 
-    def update_ui(self):
-        """Update UI elements dynamically."""
-        username = self.client.get_username()
-        room_id = self.client.get_current_room()
-        self.title_label.config(text=f"Welcome, {username}")
-        if room_id:
+        if room_data and "index" in room_data:
+            room_id = room_data["index"]
             self.room_label.config(text=f"Current Room: {room_id}")
             self.enter_room_button.pack(pady=5)
         else:
@@ -50,129 +44,51 @@ class MainMenuScreen(tk.Frame):
             self.enter_room_button.pack_forget()
 
     def create_room(self):
-        # Abandonar la sala actual (si existe) antes de crear una nueva.
-        
-        success, response = self.client.send_command("CREATE")
+        """Create a new room and update the UI."""
+        client_state = self.controller.get_client_state()
+        success, response = client_state.send_command("CREATE")
         if success:
-            room_id = response.strip()
-            self.client.roomID = room_id  # Guardar el ID de la sala en el cliente.
-            self.after(500, lambda: self.show_room_after_creation(room_id))
+            client_state.roomID = response.strip()
+            client_state.room_data = {"index": client_state.roomID, "users": [client_state.username]}
+            self.update_ui()
+            self.controller.show_screen("RoomScreen")
         else:
             messagebox.showerror("Error", f"Failed to create room: {response}")
 
-    def show_room_after_creation(self, room_id):
-        """Show room info after creation."""
-        success, room_info = self.client.get_room_info(room_id)
-        if success:
-            self.controller.show_frame("RoomScreen", room_info=room_info)
-        else:
-            self.controller.show_frame("RoomScreen", room_info={
-                "index": room_id,
-                "name": f"New Room {room_id}",
-                "admin": {"username": self.client.username},
-                "users": [self.client.username],
-                "n_users": 1,
-                "isPrivate": False,
-                "status": 0
-            })
-
     def join_room(self):
+        """Join an existing room and update UI."""
+        client_state = self.controller.get_client_state()
         room_id = simpledialog.askstring("Room ID", "Enter Room ID to join:")
-        if room_id:
-            print(f"[DEBUG] Attempting to join room: {room_id}")
-            if not room_id.isdigit():
-                messagebox.showerror("Error", "Room ID must be a number")
-                return
-            # Abandonar la sala actual antes de unirse a otra.
-           
-            success, response = self.client.send_command(
-                "JOIN", 
-                username=self.client.username,
-                roomID=room_id
-            )
+        if room_id and room_id.isdigit():
+            success, response = client_state.send_command("JOIN", roomID=room_id)
             if success:
-                print(f"[DEBUG] Join successful. Server response: {response}")
-                self.client.roomID = room_id
-                # Obtener la información básica de la sala.
-                success, room_info = self.client.get_room_info(room_id)
-                if not success:
-                    print(f"[DEBUG] Failed to get room info: {room_info}")
-                    room_info = {
-                        "index": room_id,
-                        "name": f"Room {room_id}",
-                        "admin": {"username": "Unknown"},
-                        "users": [self.client.username],
-                        "n_users": 1,
-                        "isPrivate": False,
-                        "status": 0
-                    }
-                self.controller.show_frame("RoomScreen", room_info=room_info)
+                client_state.roomID = room_id
+                client_state.room_data = {"index": room_id, "users": [client_state.username]}
+                self.update_ui()
+                self.controller.show_screen("RoomScreen")
             else:
-                messagebox.showerror("Error", 
-                    f"Failed to join room {room_id}:\n{response}\n"
-                    "Possible reasons:\n"
-                    "- Room doesn't exist\n"
-                    "- Room is full\n"
-                    "- You're already in the room")
+                messagebox.showerror("Error", f"Failed to join room {room_id}:\n{response}")
+        else:
+            messagebox.showerror("Error", "Room ID must be a number")
 
     def enter_room(self):
-        # Obtener la información actual de la sala.
-        room_info = self.get_room_info()
-        if room_info:
-            self.controller.show_frame("RoomScreen", room_info=room_info)
+        """Enter the room based on stored client data."""
+        client_state = self.controller.get_client_state()
+        if client_state.room_data:
+            self.controller.show_screen("RoomScreen")
         else:
-            messagebox.showerror("Error", "Could not get room information")
-            
-    def get_room_info(self):
-        """Obtain current room info from the client."""
-        try:
-            room_index = self.client.get_current_room()
-            success, room_data = self.client.get_room_info(room_index)
-            if not success:
-                print(f"Error getting room info: {room_data}")
-                return {
-                    "index": room_index,
-                    "name": f"Room {room_index}",
-                    "admin": {"username": self.client.username},
-                    "users": [self.client.username],
-                    "n_users": 1,
-                    "isPrivate": False,
-                    "status": 0,
-                    "word_progress": "_ _ _ _ _",
-                    "attempts_left": 6
-                }
-            return {
-                "index": room_index,
-                "name": room_data.get("name", f"Room {room_index}"),
-                "admin": {
-                    "username": room_data.get("admin", {}).get("username", self.client.username)
-                },
-                "users": room_data.get("users", []),
-                "n_users": len(room_data.get("users", [])),
-                "isPrivate": room_data.get("isPrivate", False),
-                "status": room_data.get("status", 0),
-                "word_progress": room_data.get("word_progress", ""),
-                "attempts_left": room_data.get("attempts_left", 6)
-            }
-        except Exception as e:
-            print(f"Error at obtain room data: {e}")
-            return {
-                "index": self.client.get_current_room(),
-                "name": f"Room {self.client.get_current_room()}",
-                "admin": {"username": self.client.username},
-                "users": [self.client.username],
-                "n_users": 1,
-                "isPrivate": False,
-                "status": 0,
-                "word_progress": "_ _ _ _ _",
-                "attempts_left": 6
-            }
+            messagebox.showerror("Error", "You are not in a room.")
 
     def logout(self):
-        success, response = self.client.send_command("LOGOUT")
+        """Log out the user and return to HomeScreen."""
+        client_state = self.controller.get_client_state()
+        success, response = client_state.send_command("LOGOUT")
         if success:
             messagebox.showinfo("Success", "You have logged out.")
-            self.client.disconnect()
-            self.controller.show_frame("HomeScreen")
+            client_state.roomID = ""
+            client_state.room_data = {}
+            client_state.disconnect()
+            self.controller.show_screen("HomeScreen")
         else:
             messagebox.showerror("Error", f"Logout failed: {response}")
+

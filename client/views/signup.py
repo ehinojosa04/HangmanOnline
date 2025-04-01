@@ -1,12 +1,11 @@
-# views/signup.py
 import tkinter as tk
 from tkinter import messagebox
 
 class SignupScreen(tk.Frame):
-    def __init__(self, master, controller, client):
+    def __init__(self, master, controller):
         super().__init__(master)
         self.controller = controller
-        self.client = client
+        self.client = controller.get_client_state()
         
         # Title Label
         tk.Label(self, text="Sign Up", font=("Arial", 16)).pack(pady=20)
@@ -31,8 +30,8 @@ class SignupScreen(tk.Frame):
         self.back_button.pack(pady=5)
 
     def sign_up(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
         
         if not username or not password:
             messagebox.showerror("Error", "Please fill in both fields.")

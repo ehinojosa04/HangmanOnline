@@ -96,6 +96,7 @@ Client *initClient(Client clients[]){
     return NULL;
 }
 
+/*
 void getRoomMessage(Room *room, char message[]){
     if (room -> status == INACTIVE) strcpy(message, "INACTIVE\n");
     else if (room -> status == WAITING){
@@ -115,4 +116,37 @@ void getRoomMessage(Room *room, char message[]){
                 room -> word
         );
     }
+}
+*/
+
+void getRoomMessage(Room *room, char message[]) {
+    char users_json[128] = "[";
+    int first = 1;
+
+    // Construct JSON array of users
+    for (int i = 0; i < 4; i++) {
+        if (room->users[i]) {
+            if (!first) strcat(users_json, ", ");
+            char user_entry[32 + 10];
+            snprintf(user_entry, sizeof(user_entry), "\"%s\"", room->users[i]->username);
+            strcat(users_json, user_entry);
+            first = 0;
+        }
+    }
+    strcat(users_json, "]");
+
+    // Format JSON message
+    if (room->status == INACTIVE) {
+        snprintf(message, 256, "{\"status\": \"INACTIVE\"}");
+    } else if (room->status == WAITING) {
+        snprintf(message, 256, 
+                 "{\"status\": \"WAITING\", \"players\": %s}", 
+                 users_json);
+    } else if (room->status == ACTIVE) {
+        snprintf(message, 256, 
+                 "{\"status\": \"PLAYING\", \"admin\":%s,\"players\": %s, \"word\": \"%s\"}", room->admin->username,
+                 users_json, room->word);
+    }
+
+    printf("%s",message);
 }

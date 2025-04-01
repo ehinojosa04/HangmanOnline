@@ -1,64 +1,78 @@
 import tkinter as tk
+from tkinter import messagebox
 from views.home import HomeScreen
 from views.login import LoginScreen
 from views.signup import SignupScreen
 from views.about import AboutScreen
 from views.hangmangame import HangmanGameScreen
-from views.main_menu import MainMenuScreen  # Keep the import
+from views.main_menu import MainMenuScreen
 from views.room import RoomScreen
-from utils.SocketClient import SocketClient
 
-class ClientGUI(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Hangman Online App")
-        self.geometry("800x800")
+class GUIManager:
+    def __init__(self, root, client_state):
+        self.root = root
+        self.client_state = client_state
+        self.current_screen = None
+        self.screens = {}
         
-        self.client = SocketClient("127.0.0.1", 5000)
-        self.client.connect()
-        self.frames = {}
+        # Configure root window
+        self.root.title("Hangman Game Client")
+        self.root.geometry("800x600")
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         
-        # Initialize ONLY non-authenticated frames first
-        for F in (HomeScreen, LoginScreen, SignupScreen, AboutScreen):
-            page_name = F.__name__
-            frame = F(self, self, self.client)
-            print(f"[DEBUG] Initializing {page_name}, client ID: {id(frame.client)}")
-            self.frames[page_name] = frame
-            frame.grid(row=0, column=0, sticky="nsew")
+        # Initialize all screens but don't pack them yet
+        self.initialize_screens()
         
-        # Initialize RoomScreen (if needed early)
-        self.frames["RoomScreen"] = RoomScreen(self, self, self.client)
-        self.frames["RoomScreen"].grid(row=0, column=0, sticky="nsew")
+        # Start with the home screen
+        self.show_screen("HomeScreen")
+    
+    def initialize_screens(self):
+        """Initialize all screens but don't display them"""
+        self.screens = {
+            "HomeScreen": HomeScreen(self.root, self),
+            "LoginScreen": LoginScreen(self.root, self),
+            "SignupScreen": SignupScreen(self.root, self),
+            "AboutScreen": AboutScreen(self.root, self),
+            "HangmanGameScreen": HangmanGameScreen(self.root, self),
+            "MainMenuScreen": MainMenuScreen(self.root, self),
+            "RoomScreen": RoomScreen(self.root, self)
+        }
+    
+    def show_screen(self, screen_name):
+        """Show the specified screen and hide the current one"""
+        if self.current_screen:
+            self.current_screen.pack_forget()
         
-        # MainMenuScreen will be initialized AFTER login
-        self.frames["MainMenuScreen"] = None  # Placeholder
+        self.current_screen = self.screens[screen_name]
+        self.current_screen.pack(fill=tk.BOTH, expand=True)
         
-        self.frames["HangmanGameScreen"] = HangmanGameScreen(self, self, self.client)
-        self.frames["HangmanGameScreen"].grid(row=0, column=0, sticky="nsew")
-
-        self.show_frame("HomeScreen")
-
-    def init_main_menu(self):
-        """Initialize MainMenuScreen only when needed"""
-        if self.frames["MainMenuScreen"] is None:
-            print("[DEBUG] Lazy-loading MainMenuScreen")
-            self.frames["MainMenuScreen"] = MainMenuScreen(self, self, self.client)
-            self.frames["MainMenuScreen"].grid(row=0, column=0, sticky="nsew")
-
-    def show_frame(self, frame_name, **kwargs):
-        # Lazy initialization for MainMenu
-        if frame_name == "MainMenuScreen" and self.frames[frame_name] is None:
-            self.init_main_menu()
+        # Update window title based on current screen
+        screen_title = screen_name.replace("Screen", "")
+        self.root.title(f"Hangman Game - {screen_title}")
         
-        frame = self.frames[frame_name]
-        
-        if frame_name == "RoomScreen":
-            frame.set_room_info(**kwargs)
-        elif frame_name == "MainMenuScreen":
-            frame.update_username()  # Force UI update
-            
-        frame.tkraise()
-
-if __name__ == "__main__":
-    app = ClientGUI()
-    app.mainloop()
+        # Call the screen's on_show method if it exists
+        if hasattr(self.current_screen, 'on_show'):
+            self.current_screen.on_show()
+    
+    def get_client_state(self):
+        """Return the client state object"""
+        return self.client_state
+    
+    def show_error(self, message):
+        """Show an error message dialog"""
+        messagebox.showerror("Error", message)
+    
+    def show_info(self, message):
+        """Show an information message dialog"""
+        messagebox.showinfo("Information", message)
+    
+    def on_close(self):
+        """Handle window close event"""
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            if self.client_state.is_connected():
+                self.client_state.disconnect()
+            self.root.destroy()
+    
+    def get_screen(self, screen_name):
+        """Retrieve a screen instance by name."""
+        return self.screens.get(screen_name, None)

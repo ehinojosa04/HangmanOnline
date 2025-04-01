@@ -2,10 +2,9 @@
 import tkinter as tk
 
 class AboutScreen(tk.Frame):
-    def __init__(self, master, controller, client):
+    def __init__(self, master, controller):
         super().__init__(master)
         self.controller = controller
-        self.client = client
         
         # Title Label
         tk.Label(self, text="About the App", font=("Arial", 16)).pack(pady=20)
@@ -27,6 +26,6 @@ class AboutScreen(tk.Frame):
         tk.Label(self, text=about_text, justify=tk.LEFT).pack(padx=20, pady=10)
         
         # Back to Home button
-        self.back_button = tk.Button(self, text="Back to Home", command=lambda: controller.show_frame("HomeScreen"))
+        self.back_button = tk.Button(self, text="Back to Home", command=lambda: controller.show_screen("HomeScreen"))
         self.back_button.pack(pady=20)
 
