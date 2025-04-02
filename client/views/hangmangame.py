@@ -31,15 +31,50 @@ class HangmanGameScreen(tk.Frame):
         
         self.exit_button = tk.Button(self, text="EXIT GAME", command=self.exit_game)
         self.exit_button.pack()
+    
+        
+    def show_popup(self):
+        # Verificar si ya existe un popup abierto
+        if hasattr(self, 'popup') and self.popup.winfo_exists():
+            return
+            
+        self.popup = tk.Toplevel(self)
+        self.popup.title("Confirmation")
+        self.popup.geometry("300x150")
+        self.popup.resizable(False, False)
+        
+        # Hacer el popup modal
+        self.popup.grab_set()
+        
+        label = tk.Label(self.popup, text="Do you want to exit?", font=("Arial", 12))
+        label.pack(pady=10)
+        
+        # Usar lambda para evitar llamada inmediata
+        btn_stay = tk.Button(
+            self.popup, 
+            text="Stay in Room", 
+            command=lambda: self.controller.show_screen("RoomScreen")
+        )
+        btn_stay.pack(side=tk.LEFT, padx=20, pady=10)
+
+        btn_exit = tk.Button(
+            self.popup, 
+            text="Exit", 
+            command=self.exit_game
+        )
+        btn_exit.pack(side=tk.RIGHT, padx=20, pady=10)
 
     def update_game_info(self):
         """Fetch latest game state from ClientState and update UI."""
         game_data = self.client_state.room_data  # Fetch stored game info
         
+        guessed_letters = game_data.get('guessed_letters', '_____')
+        formatted_word = " ".join(guessed_letters)
+
         self.room_id_label.config(text=f"Room: {game_data.get('index', 'Unknown')}")
-        self.label_word.config(text=f"Word: {game_data.get('word', '_ _ _ _ _')}")
+        self.label_word.config(text=f"Word: {formatted_word}")
         self.label_turn.config(text=f"Turn: {game_data.get('turn', 'Waiting...')}")
-        self.label_attempts.config(text=f"Attempts Left: {game_data.get('attempts_left', 6)}")
+        self.label_attempts.config(text=f"Attempts Left: {game_data.get('attempts', '6')}")
         
         self.entry_guess.config(state="normal")
         self.guess_button.config(state="normal")
@@ -52,6 +87,12 @@ class HangmanGameScreen(tk.Frame):
             self.entry_guess.config(state="disabled")
             self.guess_button.config(state="disabled")
         '''
+
+        if game_data.get("status", "unknown") == "WAITING":
+            if not hasattr(self, 'popup') or not self.popup.winfo_exists():
+                #self.show_popup()
+                pass
+
 
     def make_guess(self):
         """Send the guessed letter to the server."""

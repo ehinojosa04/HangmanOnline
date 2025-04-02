@@ -147,12 +147,15 @@ void getRoomMessage(Room *room, char message[]) {
         snprintf(message, MAX_UDP, "{\"status\": \"INACTIVE\"}");
     } else {
         snprintf(message, MAX_UDP, 
-                "{\"index\": \"%d\",\"status\": \"%s\", \"admin\":\"%s\",\"players\": %s, \"word\": \"%s\"}", 
+                "{\"index\": \"%d\",\"status\": \"%s\", \"admin\":\"%s\",\"players\": %s, \"word\": \"%s\",  \"guessed_letters\": \"%s\",\"attempts\": \"%d\"}", 
                 room->index, 
                 roomStatus,
                 room->admin->username, 
                 users_json, 
-                room->word);
+                room->word,
+                room->game.guessed_letters,
+                room->game.attempts_left
+            );
     }
 
     //printf("%s",message);

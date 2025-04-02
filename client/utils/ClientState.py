@@ -74,6 +74,8 @@ class ClientState:
         elif command == "EXIT" and "FAILED" not in response:
             self.roomID = ""
             return True, response
+        elif "SUCCESS" in response:
+            return True, response
         return False, response
 
 
@@ -90,7 +92,8 @@ class ClientState:
                     room_screen.update_room_info()
 
             # Update HangmanGameScreen if the game is active
-                if game_screen and room_data.get("status") == "PLAYING":
+                #if game_screen and room_data.get("status") == "PLAYING":
+                if game_screen:
                     game_screen.update_game_info()
 
         except json.JSONDecodeError:
