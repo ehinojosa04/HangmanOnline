@@ -3,36 +3,51 @@ from tkinter import messagebox, simpledialog
 
 class MainMenuScreen(tk.Frame):
     def __init__(self, master, controller):
-        super().__init__(master)
+        super().__init__(master, bg="#e9e9e9")  
         self.controller = controller
 
-        # Title Label
-        self.title_label = tk.Label(self, text="Welcome", font=("Arial", 16))
-        self.title_label.pack(pady=20)
+        container = tk.Frame(self, bg="#e9e9e9")
+        container.pack(expand=True)
 
-        # Room Info Label
-        self.room_label = tk.Label(self, text="Not in a room")
+        self.title_label = tk.Label(
+            container,
+            text="Welcome",
+            font=("Arial", 20, "bold"),
+            fg="#333333",
+            bg="#e9e9e9"
+        )
+        self.title_label.pack(pady=(10, 20))
+        self.room_label = tk.Label(container, text="Not in a room", font=("Arial", 12), bg="#e9e9e9", fg="#333333")
         self.room_label.pack(pady=10)
-
-        # Buttons
-        self.create_room_button = tk.Button(self, text="Create Room", command=self.create_room)
-        self.join_room_button = tk.Button(self, text="Join Room", command=self.join_room)
-        self.enter_room_button = tk.Button(self, text="Enter Room", command=self.enter_room)
-        self.logout_button = tk.Button(self, text="Log Out", command=self.logout)
-        self.exit_button = tk.Button(self, text="Exit", command=master.quit)
-
+        button_style = {
+            "font": ("Arial", 12, "bold"),
+            "bg": "#ffffff",
+            "fg": "#333333",
+            "activebackground": "#d0d0d0",
+            "width": 15,
+            "relief": tk.RAISED,
+            "bd": 2
+        }
+        self.create_room_button = tk.Button(container, text="Create Room", command=self.create_room, **button_style)
         self.create_room_button.pack(pady=5)
+
+        self.join_room_button = tk.Button(container, text="Join Room", command=self.join_room, **button_style)
         self.join_room_button.pack(pady=5)
+
+        self.enter_room_button = tk.Button(container, text="Enter Room", command=self.enter_room, **button_style)
         self.enter_room_button.pack(pady=5)
+
+        self.logout_button = tk.Button(container, text="Log Out", command=self.logout, **button_style)
         self.logout_button.pack(pady=5)
+
+        self.exit_button = tk.Button(container, text="Exit", command=master.quit, **button_style)
         self.exit_button.pack(pady=5)
 
     def update_ui(self):
         """Update UI elements dynamically based on client state."""
         client_state = self.controller.get_client_state()
         username = client_state.username
-        room_data = client_state.room_data  # Pull room data from ClientState
-
+        room_data = client_state.room_data 
         self.title_label.config(text=f"Welcome, {username if username else 'Guest'}")
 
         if room_data and "index" in room_data:
@@ -91,4 +106,3 @@ class MainMenuScreen(tk.Frame):
             self.controller.show_screen("HomeScreen")
         else:
             messagebox.showerror("Error", f"Logout failed: {response}")
-
