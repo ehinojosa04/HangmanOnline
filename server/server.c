@@ -170,6 +170,7 @@ void handle_client(int client_sd) {
         char command[16], username[32], password[32] = "", received_token[TOKEN_SIZE + 1] = "", roomID[CODE_SIZE] = "";
         int parsed_args = sscanf(msg, "%s %s %s %s %s", command, username, password, received_token, roomID);
 
+
         if (parsed_args < 2) {
             send(client_sd, "Invalid command\n", 16, 0);
             continue;
@@ -246,12 +247,22 @@ void handle_client(int client_sd) {
             if (client == room -> admin){
                 room -> status = ACTIVE;
                 printf("Admin %s has successfuly started room %d", room -> admin -> username, room -> index);
+                getRandomWord("words.txt", room -> word);
+                
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
                 printf("ERROR Admin is %p %s, not %p %s\n", room -> admin, room -> admin -> username, client, client -> username);
                 send(client_sd, "FAILED\n", 6, 0);
             }
 
+        } else if (strncmp(command, "GUESS_",6) == 0){
+            if (1){
+                printf("Client guessed %c\n", command[6]);
+                send(client_sd, "SUCCESS\n", 8, 0);
+            } else {
+                send(client_sd, "FAILED\n", 6, 0);
+            }
+            
         } else {
             send(client_sd, "Unknown command\n", 17, 0);
         }

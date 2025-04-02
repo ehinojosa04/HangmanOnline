@@ -7,7 +7,7 @@ from ClientGUI import GUIManager
 from utils.ClientState import ClientState
 
 # UDP Listening Function
-def listen_for_udp_messages(host, port, client, room_screen):
+def listen_for_udp_messages(host, port, client, room_screen, game_screen):
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind((host, port))  # Bind to the same port or a separate one
     last_message = ""
@@ -19,7 +19,7 @@ def listen_for_udp_messages(host, port, client, room_screen):
 
             if decoded_message != last_message:
                 last_message = decoded_message
-                client.handle_udp_message(decoded_message, room_screen)
+                client.handle_udp_message(decoded_message, room_screen, game_screen)
 
         except Exception as e:
             print(f"Error in UDP listener: {e}")
@@ -40,9 +40,10 @@ def main():
         client.connect()
         app = GUIManager(root, client)
         room_screen = app.get_screen("RoomScreen")
+        game_screen = app.get_screen("HangmanGameScreen")
 
         # Start the UDP listener in a separate thread
-        udp_thread = threading.Thread(target=listen_for_udp_messages, args=(host, port+1, client, room_screen), daemon=True)
+        udp_thread = threading.Thread(target=listen_for_udp_messages, args=(host, port+1, client, room_screen, game_screen), daemon=True)
         udp_thread.start()
 
         root.mainloop()

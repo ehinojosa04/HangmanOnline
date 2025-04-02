@@ -26,16 +26,14 @@ class RoomScreen(tk.Frame):
 
 
     def update_room_info(self):
-        """Fetch latest data from ClientState and update UI."""
-        room_data = self.client_state.room_data  # Fetch stored room info
+        room_data = self.client_state.room_data  
 
-        room_index = room_data.get("index","index not found")
+        room_index = room_data.get("index", "index not found")
         status = room_data.get("status", "UNKNOWN")
-        admin = room_data.get("admin","admin unknown")
+        admin = room_data.get("admin", "admin unknown")
         players = "->" + "\n".join(room_data.get("players", []))
         word = room_data.get("word", "")
 
-        # Update labels
         self.room_id_label.config(text=f"Room: {room_index}")
         self.label_status.config(text=f"Status: {status}")
         self.label_players.config(text=f"Players:\n\n{players}")
@@ -46,6 +44,9 @@ class RoomScreen(tk.Frame):
             self.exit_button.pack_forget()
             self.label_players.config(anchor="ne", justify="right")
 
+        # Automatically switch to the game screen
+            self.controller.show_screen("HangmanGameScreen")
+
         else:
             if admin == self.client_state.username and status == "WAITING":
                 self.start_button.pack()
@@ -54,6 +55,8 @@ class RoomScreen(tk.Frame):
 
             self.label_word.pack_forget()
             self.exit_button.pack()
+
+
 
     def start_game(self):
         """Send command to start the game."""

@@ -76,14 +76,23 @@ class ClientState:
             return True, response
         return False, response
 
-    def handle_udp_message(self, decoded_message, room_screen):
-        """Store parsed room info and update UI if changed."""
+
+    def handle_udp_message(self, decoded_message, room_screen=None, game_screen=None):
         try:
             room_data = json.loads(decoded_message)
-            if room_data != self.room_data:  # Only update if there's a change
+
+            if room_data != self.room_data:  # Update only if there is a change
                 self.room_data = room_data
-                print(room_data)
+                print("Updated room data:", room_data)
+
+            # Update RoomScreen
                 if room_screen:
-                    room_screen.update_room_info()  # Call UI update method
+                    room_screen.update_room_info()
+
+            # Update HangmanGameScreen if the game is active
+                if game_screen and room_data.get("status") == "PLAYING":
+                    game_screen.update_game_info()
+
         except json.JSONDecodeError:
-            print("Failed to decode JSON message:", decoded_message)
+            print("Failed to decode UDP message:", decoded_message)
+
