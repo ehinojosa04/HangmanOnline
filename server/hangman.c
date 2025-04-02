@@ -1,277 +1,122 @@
 #include "hangman.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <ctype.h>
+#include <stdbool.h>
 
-int points = 0;
-
-/*
-int main() {
-    int option;
-    srand(time(NULL));
-    
-    printf("\n\nWelcome to Hangman!\n");
-    
-    do {
-        printf("\n\nSelect an option: \n"
-               "1 - Play\n"
-               "2 - Add words\n"
-               "3 - Exit\n\n");
-        scanf("%d", &option);
-        clearScreen();
-        
-        switch(option) {
-            case 1:
-                playGame();
-                points = 0;
-                break;
-            case 2:
-                addWords();
-                break;
-            case 3:
-                printf("Thanks for playing! Come back soon!\n");
-                break;
-            default:
-                printf("\nPlease enter a valid option\n");
-        }
-    } while(option != 3);
-    
-    return 0;
-}
-
-*/
-
-void clearScreen() {
-    #ifdef _WIN32
-        system("cls");
-    #else
-        system("clear");
-    #endif
-}
-
-void playGame() {
-    const char *filename = "words.txt";
-    char word[MAX_WORD_LENGTH];
-    char tempWord[MAX_WORD_LENGTH];
-    char wrongLetters[MAX_ERRORS + 1] = {0};
-    int errors = 0;
-    bool letterFound;
-    
-    getRandomWord(filename, word);
-    int wordLength = strlen(word);
-
-
-    for (int i = 0; i < wordLength; i++) {
-        tempWord[i] = '-';
-    }
-    tempWord[wordLength] = '\0';
-
-    printf("\n\n* Guess the word *\n");
-
-    while (errors < MAX_ERRORS && strcmp(word, tempWord) != 0) {
-        
-        printf("\nMistakes: %d/%d\n", errors, MAX_ERRORS);
-        if (errors > 0) {
-            printf("Wrong letters: %s\n", wrongLetters);
-        }
-        printf("Word: %s\n", tempWord);
-        printf("Points: %d\n", points);
-        printf("Enter a letter: ");
-
-        char guess;
-        scanf(" %c", &guess);
-        guess = tolower(guess);
-
-        // Validate input
-        if (!isalpha(guess)) {
-            printf("Please enter only letters.\n");
-            continue;
-        }
-
-        // Check if letter was already used
-        bool alreadyUsed = false;
-
-        // First check in correct letters (including first letter)
-        for (int i = 0; i < wordLength; i++) {
-            if (tolower(word[i]) == guess && tempWord[i] != '-') {
-                alreadyUsed = true;
-                break;
-            }
-        }
-
-        // Then check in wrong letters
-        if (!alreadyUsed) {
-            for (int i = 0; i < errors; i++) {
-                if (tolower(wrongLetters[i]) == guess) {
-                    alreadyUsed = true;
-                    break;
-                }
-            }
-        }
-
-        if (alreadyUsed) {
-            printf("You already tried that letter!\n");
-            continue;
-        }
-        
-        // Search for letter in word (including first position)
-        letterFound = false;
-        for (int i = 0; i < wordLength; i++) {
-            if (tolower(word[i]) == guess) {
-                tempWord[i] = word[i]; // Keep original case
-                if (!letterFound) { // Add points only once per letter
-                    points += 20;
-                    letterFound = true;
-                }
-            }
-        }
-
-        if (!letterFound) {
-            points -= 10;
-            wrongLetters[errors++] = guess;
-            wrongLetters[errors] = '\0';
-        }
-    }
-
-    // Show final result
-    clearScreen();
-    
-    if (points < 0) points = 0;
-    displayMessage(errors, word, points, wrongLetters);
-}
-
-void displayMessage(int errors, const char *word, int points, const char *wrongLetters) {
-    if (errors == MAX_ERRORS) {
-        printf("\nYou lost! The word was: %s\n", word);
-        printf("Final score: %d\n", points);
-        printf("Wrong letters: %s\n", wrongLetters);
-    } else {
-        printf("\nCongratulations! You won!\n");
-        printf("Word: %s\n", word);
-        printf("Score: %d\n", points);
-        printf("Mistakes: %d\n", errors);
-    }
-}
-
-int countLines(const char *filename) {
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        printf("Error opening file %s\n", filename);
-        return 0;
-    }
-    
-    int count = 0;
-    char ch;
-    while ((ch = fgetc(file)) != EOF) {
-        if (ch == '\n') {
-            count++;
-        }
-    }
-    
-    fclose(file);
-    return count;
-}
-
+// Carga una palabra aleatoria desde un archivo (o usa palabras por defecto)
 void getRandomWord(const char *filename, char *word) {
     FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        printf("Error opening file %s\n", filename);
-        strcpy(word, "default");
+    if (!file) {
+        // Palabras por defecto si no hay archivo
+        const char *default_words[] = {
+            "python", "hangman", "computer", "programming",
+            "keyboard", "developer", "challenge"
+        };
+        int count = sizeof(default_words) / sizeof(default_words[0]);
+        strcpy(word, default_words[rand() % count]);
         return;
     }
-    
-    int totalLines = countLines(filename);
-    if (totalLines == 0) {
-        strcpy(word, "default");
-        fclose(file);
-        return;
-    }
-    
-    int targetLine = rand() % totalLines;
-    int currentLine = 0;
-    
-    while (fgets(word, MAX_WORD_LENGTH, file)) {
-        if (currentLine == targetLine) {
-            // Remove any \r and \n
-            size_t len = strlen(word);
-            while (len > 0 && (word[len - 1] == '\n' || word[len - 1] == '\r')) {
-                word[len - 1] = '\0';
-                len--;
-            }
-            
-            for (int i = 0; i < len; i++) {
-                word[i] = tolower(word[i]);
-            }
-            break;
+
+    char buffer[MAX_WORD_LENGTH];
+    int total_words = 0;
+    char *words[100]; // Máximo 100 palabras en el archivo
+
+    while (fgets(buffer, MAX_WORD_LENGTH, file) && total_words < 100) {
+        buffer[strcspn(buffer, "\r\n")] = '\0'; // Eliminar saltos de línea
+        if (strlen(buffer) >= 2) {
+            words[total_words] = strdup(buffer);
+            total_words++;
         }
-        currentLine++;
     }
-    
     fclose(file);
+
+    if (total_words > 0) {
+        strcpy(word, words[rand() % total_words]);
+        // Liberar memoria
+        for (int i = 0; i < total_words; i++) free(words[i]);
+    } else {
+        strcpy(word, "hangman"); // Palabra por defecto
+    }
 }
 
-void addWords() {
-    FILE *file = fopen("words.txt", "a+");
-    if (file == NULL) {
-        printf("Error opening words file\n");
-        return;
+// Inicia un nuevo juego de ahorcado
+void startHangmanGame(HangmanGame *game, const char *word) {
+    strncpy(game->secret_word, word, MAX_WORD_LENGTH - 1);
+    game->secret_word[MAX_WORD_LENGTH - 1] = '\0';
+
+    // Inicializar letras adivinadas como "_____"
+    size_t len = strlen(word);
+    for (size_t i = 0; i < len; i++) {
+        game->guessed_letters[i] = '_';
     }
-    
-    char newWord[MAX_WORD_LENGTH];
-    int continueAdding = 1;
-    
-    printf("\nCurrent words:\n");
-    rewind(file);
-    char word[MAX_WORD_LENGTH];
-    int count = 0;
-    while (fgets(word, MAX_WORD_LENGTH, file)) {
-        word[strcspn(word, "\r\n")] = '\0';
-        printf("%d. %s\n", ++count, word);
+    game->guessed_letters[len] = '\0';
+
+    game->wrong_letters[0] = '\0';
+    game->attempts_left = MAX_ATTEMPTS;
+    game->game_over = false;
+
+    // Resetear puntos de jugadores
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        game->player_points[i] = 0;
     }
+}
+
+// Procesa un intento de letra (para un jugador específico)
+const char* processGuess(HangmanGame *game, int player_id, char letter) {
+    if (game->game_over) return "GAME_OVER";
+
+    letter = tolower(letter);
     
-    while (continueAdding) {
-        printf("\nEnter a new word (letters only, max %d chars): ", MAX_WORD_LENGTH - 1);
-        scanf("%s", newWord);
-        
-        // Validate length
-        if (strlen(newWord) >= MAX_WORD_LENGTH) {
-            printf("Word is too long. Maximum %d characters.\n", MAX_WORD_LENGTH - 1);
-            continue;
+
+    // Verificar si la letra ya fue usada
+    if (strchr(game->guessed_letters, letter) != NULL) return "ALREADY_GUESSED";
+    if (strchr(game->wrong_letters, letter) != NULL) return "ALREADY_GUESSED";
+
+    bool correct = false;
+
+    // Verificar si la letra está en la palabra secreta
+    for (int i = 0; game->secret_word[i]; i++) {
+        if (tolower(game->secret_word[i]) == letter) {
+            game->guessed_letters[i] = letter;
+            correct = true;
         }
-        
-        // Convert to lowercase and validate characters
-        bool valid = true;
-        for (int i = 0; newWord[i]; i++) {
-            if (!isalpha(newWord[i])) {
-                valid = false;
-                break;
-            }
-            newWord[i] = tolower(newWord[i]);
-        }
-        
-        if (!valid) {
-            printf("Only A-Z letters are allowed.\n");
-            continue;
-        }
-        
-        // Check if word already exists
-        bool exists = false;
-        rewind(file);
-        while (fgets(word, MAX_WORD_LENGTH, file)) {
-            word[strcspn(word, "\r\n")] = '\0';
-            if (strcmp(word, newWord) == 0) {
-                exists = true;
-                break;
-            }
-        }
-        
-        if (exists) {
-            printf("Word '%s' already exists in the list.\n", newWord);
-        } else {
-            fprintf(file, "%s\n", newWord);
-            printf("Word '%s' added successfully.\n", newWord);
-        }
-        
-        printf("\nAdd another word?\n1 - Yes\n0 - No\n");
-        scanf("%d", &continueAdding);
     }
-    
-    fclose(file);
+
+    if (correct) {
+        game->player_points[player_id] += 10; // Puntos por acierto
+        // Verificar si ganó
+        if (!strchr(game->guessed_letters, '_')) {
+            game->game_over = true;
+            return "WIN";
+        }
+        return "CORRECT";
+    } else {
+        // Agregar letra incorrecta
+        size_t len = strlen(game->wrong_letters);
+        if (len < MAX_WRONG_LETTERS) {
+            game->wrong_letters[len] = letter;
+            game->wrong_letters[len + 1] = '\0';
+        }
+        game->attempts_left--;
+        game->player_points[player_id] -= 5; // Penalización por error
+
+        if (game->attempts_left <= 0) {
+            game->game_over = true;
+            return "LOSE";
+        }
+        return "WRONG";
+    }
+}
+
+// Genera un mensaje de estado para broadcast (UDP)
+void getGameStateMessage(HangmanGame *game, char *message) {
+    snprintf(message, 256, 
+             "WORD: %s | WRONG: %s | ATTEMPTS: %d | GAME_OVER: %d",
+             game->guessed_letters, 
+             game->wrong_letters, 
+             game->attempts_left,
+             game->game_over);
 }
