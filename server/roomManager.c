@@ -1,25 +1,26 @@
 #include "roomManager.h"
 #include <string.h>
 
-#define MAX_UDP 268
+#define MAX_UDP 512
 
-Room *createRoom(Room rooms[], int max_rooms, Client *client){
+Room *createRoom(Room rooms[], int max_rooms, Client *client) {
     printf("Attempting to create a room for %p %s\n", client, client->username);
-    for (int i = 0; i < max_rooms; i++){
-        if(rooms[i].status == INACTIVE){
+    for (int i = 0; i < max_rooms; i++) {
+        if(rooms[i].status == INACTIVE) {
             Room *room = &rooms[i];
             room->status = WAITING;
             room->n_users = 0;
             room->index = i;
             
-            // Set admin AFTER joining room
             generateRandomCode(rooms[i].password);
             
-            // First join the room
+            // Inicializar el juego aquí
+            getRandomWord("words.txt", room->word);  // Nueva línea
+            startHangmanGame(&room->game, room->word);  // Nueva línea
+            
             Room *joined_room = joinRoom(rooms, i, client);
             
             if (joined_room != NULL) {
-                // Then set the admin pointer - this ensures it's preserved
                 joined_room->admin = client;
                 printf("Admin set to %p %s\n", joined_room->admin, joined_room->admin->username);
             } 
@@ -49,20 +50,22 @@ Room *joinRoom(Room rooms[], int index, Client *client){
 }
 
 
-int exitRoom(Room rooms[], int index, char *username){
+int exitRoom(Room rooms[], int index, char *username) {
     if (index < 0 || rooms[index].status == INACTIVE) {
         return 0;
     }
 
-    if (strcmp(rooms[index].admin -> username, username) == 0) {
+    if (strcmp(rooms[index].admin->username, username) == 0) {
+        // Reiniciar el juego cuando el admin sale
+        memset(&rooms[index].game, 0, sizeof(HangmanGame));  // Nueva línea
         memset(&rooms[index], 0, sizeof(Room));
         rooms[index].status = INACTIVE;
         return 1;
     }
 
-    for (int i = 0; i < MAX_PLAYERS; i++){
-        if (strcmp(rooms[index].users[i] -> username, username) == 0) {
-            memset(&rooms[index].users[i], 0, sizeof(Client));
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (rooms[index].users[i] && strcmp(rooms[index].users[i]->username, username) == 0) {
+            rooms[index].users[i] = NULL;  // Cambiado de memset a NULL assignment
             rooms[index].n_users--;
             return 1;
         }

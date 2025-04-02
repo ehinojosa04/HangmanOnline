@@ -18,6 +18,7 @@ def main():
         print(f"Conected to {host} at port {PORT}\n")
 
         command = " "
+        aux = " "
         username = " "
         password = " "
         token = " "
@@ -104,9 +105,9 @@ def main():
                 if command == "JOIN":
                     roomID = input("RoomID: ").strip()
 
-            message = f"{command} {username} {password} {token} {roomID}"
+            message = f"{command} {aux} {username} {password} {token} {roomID}"
 
-            print(f"Message sent: '{command} {username} {password} {token} {roomID}'")
+            print(f"Message sent: '{command} {aux} {username} {password} {token} {roomID}'")
             client_socket.sendall(message.encode())
 
             response = client_socket.recv(BUFFER_SIZE).decode(encoding='windows-1252')

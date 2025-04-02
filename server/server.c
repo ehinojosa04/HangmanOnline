@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <sqlite3.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -170,6 +171,7 @@ void handle_client(int client_sd) {
         char command[16], username[32], password[32] = "", received_token[TOKEN_SIZE + 1] = "", roomID[CODE_SIZE] = "";
         int parsed_args = sscanf(msg, "%s %s %s %s %s", command, username, password, received_token, roomID);
 
+
         if (parsed_args < 2) {
             send(client_sd, "Invalid command\n", 16, 0);
             continue;
@@ -243,16 +245,82 @@ void handle_client(int client_sd) {
                 send(client_sd, "FAILED\n", 6, 0);
             }
         } else if (strcmp(command, "START") == 0) {
-            if (client == room -> admin){
-                room -> status = ACTIVE;
-                printf("Admin %s has successfuly started room %d", room -> admin -> username, room -> index);
+            if (client == room->admin){
+                room->status = ACTIVE;
+                printf("Admin %s has successfully started room %d\n", room->admin->username, room->index);
+                getRandomWord("words.txt", room->word);
+                
+                // Inicializar el juego de ahorcado
+                startHangmanGame(&room->game, room->word);
+                
+                // Enviar estado inicial a todos los jugadores
+                char initial_msg[256];
+                getGameStateMessage(&room->game, initial_msg);
+                broadcast_to_room(room, initial_msg);
+                
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
-                printf("ERROR Admin is %p %s, not %p %s\n", room -> admin, room -> admin -> username, client, client -> username);
-                send(client_sd, "FAILED\n", 6, 0);
+                printf("ERROR Admin is %p %s, not %p %s\n", room->admin, room->admin->username, client, client->username);
+                send(client_sd, "FAILED: Not admin\n", 18, 0);
             }
+        } else if (strncmp(command, "GUESS_", 6) == 0) {
+    // Validaciones básicas
+    if (!room) {
+        send(client_sd, "ERROR: Not in a room", 20, 0);
+        continue;
+    }
+    if (room->status != ACTIVE) {
+        send(client_sd, "ERROR: Game not active", 22, 0);
+        continue;
+    }
 
+    // Extraer letra (ej: "GUESS_A" -> 'A')
+    char letter = command[6];
+    if (!isalpha(letter)) {
+        send(client_sd, "ERROR: Invalid letter", 21, 0);
+        continue;
+    }
+    letter = tolower(letter);
+
+    // Obtener ID del jugador en la sala
+    int player_id = -1;
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (room->users[i] == client) {
+            player_id = i;
+            break;
+        }
+    }
+
+    if (player_id == -1) {
+        send(client_sd, "ERROR: Not in room", 18, 0);
+        continue;
+    }
+
+    // Procesar la letra
+    const char* result = processGuess(&room->game, player_id, letter);
+    
+    // Respuesta inmediata al jugador
+    send(client_sd, result, strlen(result), 0);
+    
+    // Broadcast del nuevo estado a TODOS los jugadores
+    char update_msg[256];
+    getGameStateMessage(&room->game, update_msg);
+    broadcast_to_room(room, update_msg);
+
+    // Manejar fin del juego
+    if (strcmp(result, "WIN") == 0 || strcmp(result, "LOSE") == 0) {
+        room->status = WAITING; // Cambiar estado para permitir nuevo juego
+        
+        // Mensaje final del juego
+        char final_msg[256];
+        if (strcmp(result, "WIN") == 0) {
+            snprintf(final_msg, sizeof(final_msg), "GAME_OVER|WIN|Word was: %s", room->word);
         } else {
+            snprintf(final_msg, sizeof(final_msg), "GAME_OVER|LOSE|Word was: %s", room->word);
+        }
+        broadcast_to_room(room, final_msg);
+    }
+} else {
             send(client_sd, "Unknown command\n", 17, 0);
         }
     }

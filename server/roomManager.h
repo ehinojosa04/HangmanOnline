@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <arpa/inet.h>
+#include "hangman.h" 
 
 #define CHARSET "ABCDEF1234567890"
 #define CODE_SIZE 4
@@ -32,8 +33,10 @@ typedef struct Room {
 
     int index;
     int status;
-
     char word[32];
+
+    HangmanGame game; 
+    
 } Room;
 
 Room *createRoom(Room rooms[], int max_rooms, Client *client);
