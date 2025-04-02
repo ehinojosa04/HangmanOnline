@@ -112,7 +112,7 @@ void* update_thread_function(void* arg) {
             }
         }
         
-        sleep(2);
+        sleep(0.2);
     }
     
     return NULL;

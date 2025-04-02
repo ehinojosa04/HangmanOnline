@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import messagebox
 
 class HangmanGameScreen(tk.Frame):
-    def __init__(self, parent, controller):
-        super().__init__(parent)
+    def __init__(self, master, controller):
+        super().__init__(master)
         self.controller = controller
         self.client_state = self.controller.get_client_state()
 
@@ -28,41 +28,15 @@ class HangmanGameScreen(tk.Frame):
         
         self.guess_button = tk.Button(self, text="GUESS", command=self.make_guess)
         self.guess_button.pack()
+
+        self.back2room_button = tk.Button(self, text="BACK TO ROOM", command=self.back_to_room)
         
         self.exit_button = tk.Button(self, text="EXIT GAME", command=self.exit_game)
         self.exit_button.pack()
-    
-        
-    def show_popup(self):
-        # Verificar si ya existe un popup abierto
-        if hasattr(self, 'popup') and self.popup.winfo_exists():
-            return
-            
-        self.popup = tk.Toplevel(self)
-        self.popup.title("Confirmation")
-        self.popup.geometry("300x150")
-        self.popup.resizable(False, False)
-        
-        # Hacer el popup modal
-        self.popup.grab_set()
-        
-        label = tk.Label(self.popup, text="Do you want to exit?", font=("Arial", 12))
-        label.pack(pady=10)
-        
-        # Usar lambda para evitar llamada inmediata
-        btn_stay = tk.Button(
-            self.popup, 
-            text="Stay in Room", 
-            command=lambda: self.controller.show_screen("RoomScreen")
-        )
-        btn_stay.pack(side=tk.LEFT, padx=20, pady=10)
 
-        btn_exit = tk.Button(
-            self.popup, 
-            text="Exit", 
-            command=self.exit_game
-        )
-        btn_exit.pack(side=tk.RIGHT, padx=20, pady=10)
+        self.update_game_info()
+    
+
 
     def update_game_info(self):
         """Fetch latest game state from ClientState and update UI."""
@@ -70,29 +44,29 @@ class HangmanGameScreen(tk.Frame):
         
         guessed_letters = game_data.get('guessed_letters', '_____')
         formatted_word = " ".join(guessed_letters)
+        status = game_data.get('status', 'UNKNOWN')
 
         self.room_id_label.config(text=f"Room: {game_data.get('index', 'Unknown')}")
         self.label_word.config(text=f"Word: {formatted_word}")
         self.label_turn.config(text=f"Turn: {game_data.get('turn', 'Waiting...')}")
         self.label_attempts.config(text=f"Attempts Left: {game_data.get('attempts', '6')}")
-        
-        self.entry_guess.config(state="normal")
-        self.guess_button.config(state="normal")
-        # Enable/disable guess input based on turn
-        '''
-        if game_data.get("turn") == self.client_state.username:
-            self.entry_guess.config(state="normal")
-            self.guess_button.config(state="normal")
+
+        if status == "WAITING":
+            self.guess_button.pack_forget()
+            self.entry_guess.pack_forget()
+            self.label_attempts.pack_forget()
+
+            if not hasattr(self, 'back2room_button_packed') or not self.back2room_button_packed:
+                self.back2room_button.pack()
+                self.back2room_button_packed = True
         else:
-            self.entry_guess.config(state="disabled")
-            self.guess_button.config(state="disabled")
-        '''
-
-        if game_data.get("status", "unknown") == "WAITING":
-            if not hasattr(self, 'popup') or not self.popup.winfo_exists():
-                #self.show_popup()
-                pass
-
+            if hasattr(self, 'back2room_button_packed') and self.back2room_button_packed:
+                self.back2room_button.pack_forget()
+                self.back2room_button_packed = False
+            
+            self.entry_guess.pack(pady=5)
+            self.guess_button.pack()
+            self.label_attempts.pack(pady=5)
 
     def make_guess(self):
         """Send the guessed letter to the server."""
@@ -115,3 +89,6 @@ class HangmanGameScreen(tk.Frame):
             self.controller.show_screen("MainMenuScreen")
         else:
             messagebox.showerror("Error", f"Failed to exit game: {response}")
+
+    def back_to_room(self):
+        self.controller.show_screen("RoomScreen")
