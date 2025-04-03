@@ -112,7 +112,7 @@ void* update_thread_function(void* arg) {
             }
         }
         
-        sleep(0.2);
+        sleep(2);
     }
     
     return NULL;
@@ -253,11 +253,11 @@ void handle_client(int client_sd) {
                 // Inicializar el juego de ahorcado
                 startHangmanGame(&room->game, room->word);
                 
-                // Enviar estado inicial a todos los jugadores
+                /*
                 char initial_msg[256];
                 getGameStateMessage(&room->game, initial_msg);
                 broadcast_to_room(room, initial_msg);
-                
+                */
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
                 printf("ERROR Admin is %p %s, not %p %s\n", room->admin, room->admin->username, client, client->username);
