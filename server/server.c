@@ -8,6 +8,7 @@
 #include <sqlite3.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -112,7 +113,7 @@ void* update_thread_function(void* arg) {
             }
         }
         
-        sleep(2);
+        usleep(2000);
     }
     
     return NULL;

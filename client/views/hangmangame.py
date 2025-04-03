@@ -95,6 +95,15 @@ class HangmanGameScreen(tk.Frame):
         if not success:
             messagebox.showerror("Error", f"Failed to send guess: {response}")
         self.entry_guess.delete(0, tk.END)
+        self.update_game_info()
+    
+        
+        if response.strip().upper() == "WIN":
+            messagebox.showinfo("Game Over", "Congratulations, You are a Winner!! ")
+            self.label_status.config(text="Status: GAME OVER - WIN")
+        elif response.strip().upper() == "LOSE":
+            messagebox.showinfo("Game Over", "Looser, better luck Next Time")
+            self.label_status.config(text="Status: GAME OVER - LOSE")
 
     def exit_game(self):
         """Exit the game and return to the main menu."""
