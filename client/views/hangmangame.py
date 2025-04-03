@@ -17,11 +17,16 @@ class HangmanGameScreen(tk.Frame):
         self.label_word = tk.Label(self, text="Word: _ _ _ _ _", font=("Arial", 18))
         self.label_word.pack(pady=5)
         
-        self.label_turn = tk.Label(self, text="Turn: Waiting...", font=("Arial", 12))
-        self.label_turn.pack(pady=5)
-        
         self.label_attempts = tk.Label(self, text="Attempts Left: 6", font=("Arial", 12))
         self.label_attempts.pack(pady=5)
+
+        # Players list
+        self.label_players = tk.Label(self, text="Players:\n", font=("Arial", 12), justify="left")
+        self.label_players.pack(pady=5)
+
+        # Display current turn
+        self.label_turn = tk.Label(self, text="Turn: Waiting...", font=("Arial", 12))
+        self.label_turn.pack(pady=5)
 
         self.entry_guess = tk.Entry(self, font=("Arial", 14))
         self.entry_guess.pack(pady=5)
@@ -30,14 +35,13 @@ class HangmanGameScreen(tk.Frame):
         self.guess_button.pack()
 
         self.back2room_button = tk.Button(self, text="BACK TO ROOM", command=self.back_to_room)
-        
+
+        # Exit button at the bottom
         self.exit_button = tk.Button(self, text="EXIT GAME", command=self.exit_game)
-        self.exit_button.pack()
+        self.exit_button.pack(side="bottom", pady=10)
 
         self.update_game_info()
     
-
-
     def update_game_info(self):
         """Fetch latest game state from ClientState and update UI."""
         game_data = self.client_state.room_data  # Fetch stored game info
@@ -48,9 +52,17 @@ class HangmanGameScreen(tk.Frame):
 
         self.room_id_label.config(text=f"Room: {game_data.get('index', 'Unknown')}")
         self.label_word.config(text=f"Word: {formatted_word}")
-        self.label_turn.config(text=f"Turn: {game_data.get('turn', 'Waiting...')}")
         self.label_attempts.config(text=f"Attempts Left: {game_data.get('attempts', '6')}")
 
+        # Display players list
+        players = game_data.get('players', [])
+        players_text = "Players:\n" + "\n".join(players) if players else "Players: None"
+        self.label_players.config(text=players_text)
+
+        # Display current player's turn
+        turn_index = game_data.get('turn', 0)
+        if players:
+            self.label_turn.config(text=f"Turn: {players[turn_index%len(players)]}")
         if status == "WAITING":
             self.guess_button.pack_forget()
             self.entry_guess.pack_forget()
