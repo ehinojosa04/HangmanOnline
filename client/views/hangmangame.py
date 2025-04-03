@@ -19,6 +19,9 @@ class HangmanGameScreen(tk.Frame):
         
         self.label_attempts = tk.Label(self, text="Attempts Left: 6", font=("Arial", 12))
         self.label_attempts.pack(pady=5)
+        
+        self.label_wrong_letters = tk.Label(self, text="Wrong Letters: ", font=("Arial", 12))
+        self.label_wrong_letters.pack(pady=5)
 
         # Players list
         self.label_players = tk.Label(self, text="Players:\n", font=("Arial", 12), justify="left")
@@ -53,6 +56,7 @@ class HangmanGameScreen(tk.Frame):
         self.room_id_label.config(text=f"Room: {game_data.get('index', 'Unknown')}")
         self.label_word.config(text=f"Word: {formatted_word}")
         self.label_attempts.config(text=f"Attempts Left: {game_data.get('attempts', '6')}")
+        self.label_wrong_letters.config(text=f"Wrong Letters:  {game_data.get('wrong_letters',' ')}")
 
         # Display players list
         players = game_data.get('players', [])
