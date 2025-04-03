@@ -246,18 +246,19 @@ void handle_client(int client_sd) {
             }
         } else if (strcmp(command, "START") == 0) {
             if (client == room->admin){
-                room->status = ACTIVE;
+                room -> status = ACTIVE;
+                room -> turn = 0; 
                 printf("Admin %s has successfully started room %d\n", room->admin->username, room->index);
                 getRandomWord("words.txt", room->word);
                 
                 // Inicializar el juego de ahorcado
                 startHangmanGame(&room->game, room->word);
                 
-                // Enviar estado inicial a todos los jugadores
+                /*
                 char initial_msg[256];
                 getGameStateMessage(&room->game, initial_msg);
                 broadcast_to_room(room, initial_msg);
-                
+                */
                 send(client_sd, "SUCCESS\n", 8, 0);
             } else {
                 printf("ERROR Admin is %p %s, not %p %s\n", room->admin, room->admin->username, client, client->username);
@@ -298,14 +299,15 @@ void handle_client(int client_sd) {
 
     // Procesar la letra
     const char* result = processGuess(&room->game, player_id, letter);
+    room -> turn++;
     
     // Respuesta inmediata al jugador
     send(client_sd, result, strlen(result), 0);
     
     // Broadcast del nuevo estado a TODOS los jugadores
-    char update_msg[256];
-    getGameStateMessage(&room->game, update_msg);
-    broadcast_to_room(room, update_msg);
+    //char update_msg[256];
+    //getGameStateMessage(&room->game, update_msg);
+    //broadcast_to_room(room, update_msg);
 
     // Manejar fin del juego
     if (strcmp(result, "WIN") == 0 || strcmp(result, "LOSE") == 0) {

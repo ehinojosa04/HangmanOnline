@@ -101,42 +101,47 @@ Client *initClient(Client clients[]){
     return NULL;
 }
 
-/*
-void getRoomMessage(Room *room, char message[]){
-    if (room -> status == INACTIVE) strcpy(message, "INACTIVE\n");
-    else if (room -> status == WAITING){
-        sprintf(message, "WAITING,%s,%s,%s,%s\n", 
-                room -> users[0] ? room -> users [0] ->username : "",
-                room -> users[1] ? room -> users [1] ->username : "",
-                room -> users[2] ? room -> users [2] ->username : "",
-                room -> users[3] ? room -> users [3] ->username : ""
-        );
+
+void shiftUsersArray(Client *users[], int size, int shift) {
+    if (size <= 1) return;
+
+    shift = shift % size;  // Ensure the shift is within bounds
+    if (shift == 0) return; 
+
+    Client *tempUsers[4] = { NULL };
+
+    // Copy shifted users into temp array
+    for (int i = 0; i < size; i++) {
+        tempUsers[i] = users[(i + shift) % size];
     }
-    else if (room -> status == ACTIVE){
-        sprintf(message, "STATUS: PLAYING\nPLAYERS:%s,%s,%s,%s\nWORD: %s\n", 
-                room -> users[0] ? room -> users [0] ->username : "",
-                room -> users[1] ? room -> users [1] ->username : "",
-                room -> users[2] ? room -> users [2] ->username : "",
-                room -> users[3] ? room -> users [3] ->username : "",
-                room -> word
-        );
+
+    // Copy back into original array
+    for (int i = 0; i < size; i++) {
+        users[i] = tempUsers[i];
     }
 }
-*/
 
 void getRoomMessage(Room *room, char message[]) {
     char users_json[128] = "[";
     int first = 1;
 
-    // Construct JSON array of users
+    // Extract active users into a temporary array
+    int activeUsers = 0;
+    Client *tempUsers[4] = { NULL };
+
     for (int i = 0; i < 4; i++) {
         if (room->users[i]) {
-            if (!first) strcat(users_json, ", ");
-            char user_entry[32 + 10];
-            snprintf(user_entry, sizeof(user_entry), "\"%s\"", room->users[i]->username);
-            strcat(users_json, user_entry);
-            first = 0;
+            tempUsers[activeUsers++] = room->users[i];
         }
+    }
+
+    // Construct JSON array of users after rotation
+    for (int i = 0; i < activeUsers; i++) {
+        if (!first) strcat(users_json, ", ");
+        char user_entry[32 + 10];
+        snprintf(user_entry, sizeof(user_entry), "\"%s\"", tempUsers[i]->username);
+        strcat(users_json, user_entry);
+        first = 0;
     }
     strcat(users_json, "]");
 
@@ -147,13 +152,16 @@ void getRoomMessage(Room *room, char message[]) {
         snprintf(message, MAX_UDP, "{\"status\": \"INACTIVE\"}");
     } else {
         snprintf(message, MAX_UDP, 
-                "{\"index\": \"%d\",\"status\": \"%s\", \"admin\":\"%s\",\"players\": %s, \"word\": \"%s\"}", 
+                "{\"index\": \"%d\",\"status\": \"%s\", \"turn\": %d, \"admin\":\"%s\", \"players\": %s, \"word\": \"%s\",  \"guessed_letters\": \"%s\", \"attempts\": \"%d\"}", 
                 room->index, 
                 roomStatus,
+                room->turn,
                 room->admin->username, 
                 users_json, 
-                room->word);
+                room->word,
+                room->game.guessed_letters,
+                room->game.attempts_left
+            );
     }
-
-    //printf("%s",message);
 }
+

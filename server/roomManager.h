@@ -35,6 +35,8 @@ typedef struct Room {
     int status;
     char word[32];
 
+    int turn;
+
     HangmanGame game; 
     
 } Room;

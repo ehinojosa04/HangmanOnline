@@ -59,6 +59,8 @@ class ClientState:
             return False, f"Socket error: {e}"
 
         # Process server response
+        print(f'command: {command}')
+        print(f'response: {response}')
         if command == "LOGIN" and "FAILED" not in response:
             self.token = response.strip()
             print(f"Session initiated with token: {self.token}")
@@ -73,6 +75,10 @@ class ClientState:
             return False, response
         elif command == "EXIT" and "FAILED" not in response:
             self.roomID = ""
+            return True, response
+        elif "SUCCESS" in response:
+            return True, response
+        elif "GUESS_" in command and "FAILED" not in response:
             return True, response
         return False, response
 
@@ -90,7 +96,8 @@ class ClientState:
                     room_screen.update_room_info()
 
             # Update HangmanGameScreen if the game is active
-                if game_screen and room_data.get("status") == "PLAYING":
+                #if game_screen and room_data.get("status") == "PLAYING":
+                if game_screen:
                     game_screen.update_game_info()
 
         except json.JSONDecodeError:
