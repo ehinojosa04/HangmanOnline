@@ -33,6 +33,8 @@ def main():
     host = sys.argv[1]
     port = int(sys.argv[2])
 
+    udp_host = "0.0.0.0"
+
     root = tk.Tk()
     client = ClientState(host, port)
 
@@ -43,7 +45,7 @@ def main():
         game_screen = app.get_screen("HangmanGameScreen")
 
         # Start the UDP listener in a separate thread
-        udp_thread = threading.Thread(target=listen_for_udp_messages, args=(host, port+1, client, room_screen, game_screen), daemon=True)
+        udp_thread = threading.Thread(target=listen_for_udp_messages, args=(udp_host, port+1, client, room_screen, game_screen), daemon=True)
         udp_thread.start()
 
         root.mainloop()
