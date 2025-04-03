@@ -69,15 +69,7 @@ class HangmanGameScreen(tk.Frame):
         self.label_wrong_letters = tk.Label(self, text="Wrong Letters: ", font=("Arial", 12))
         self.label_wrong_letters.pack(pady=5)
 
-        # Etiqueta: Puntos
-        self.label_points = tk.Label(
-            container,
-            text="Points: 0",
-            font=("Arial", 12),
-            fg="#333333",
-            bg="#e9e9e9"
-        )
-        self.label_points.pack(pady=5)
+        
 
         # Etiqueta: Letras equivocadas
         self.label_wrong = tk.Label(
@@ -149,7 +141,10 @@ class HangmanGameScreen(tk.Frame):
         self.label_word.config(text=f"Word: {formatted_word}")
 
         self.label_attempts.config(text=f"Attempts Left: {game_data.get('attempts', '6')}")
-        self.label_wrong_letters.config(text=f"Wrong Letters:  {game_data.get('wrong_letters',' ')}")
+        self.label_wrong.config(text=f"Wrong Letters:  {game_data.get('wrong_letters',' ')}")
+        
+        #errors = 6 - attempts_left
+        #self.draw_hangman(errors)
 
     def draw_hangman(self, errors):
         """Dibuja la horca y las partes del cuerpo según el número de errores."""
